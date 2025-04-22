@@ -1,11 +1,19 @@
 #! /usr/bin/python3
 
-screen = []
-screen_width = []
-
-def overlay_sys_init(col, lin): 
+def overlay_sys_init(col, lin, debug=False): 
     global max_width 
     global max_height
+
+    global screen
+    global screen_width
+
+    global glob_window_list
+
+    glob_window_list = []
+
+    screen = []
+    screen_width = []
+
     max_width = col
     max_height = (lin - 1)
     
@@ -14,7 +22,22 @@ def overlay_sys_init(col, lin):
     while len(screen) < max_height:
         screen.append(screen_width[:])
 
+    if debug == True:
+        for line in screen:
+            print(line)
+        print(f"Overlay sys height: {str(max_height)}\nOverlay sys width: {str(max_width)}")
+
     return max_height, max_width
+
+def glob_win_add(self, corner1x, corner1y, size=10, corner2x=-1, corner2y=-1, title="WIN",):
+    glob_window_list.append(title)
+    glob_window_list[-1] = Window(corner1x, corner1y, size, corner2x, corner2y)
+
+def glob_win_render():
+    i=0
+    while i <= len(glob_window_list):
+        glob_window_list[i].win_draw()
+        i+=1
 
 def screen_dbg_tape(tape = True, pluses = True):
     xten = []
@@ -58,12 +81,16 @@ def screen_dbg_tape(tape = True, pluses = True):
                 x+=1
             y+=1
 
-def screen_print():
+def screen_print(debug=False):
+    if debug == True:
+        for line in screen:
+            print(line)
     for line in screen:
         print(''.join(line))
 
 def screen_write(x, y, char): # add protection for eol markers
-    screen[y][x] = char
+    if x < max_width and y < max_height:
+        screen[y][x] = char
 
 def screen_clear():
     i = 0
@@ -74,14 +101,16 @@ def screen_clear():
 ################################################
 
 class Window:
-    def __init__(self, win_id, corner1x, corner1y, size=10, corner2x=-1, corner2y=-1):
+    def __init__(self, corner1x, corner1y, size=10, corner2x=-1, corner2y=-1): # removed id from api
         self.c1x = corner1x
         self.c1y = corner1y
         self.c2x = corner2x
         self.c2y = corner2y
-        self.win_id = win_id
+        self.strict_toggle = True
+        self.auto_newline_toggle = True
         self.last_content = ""
         self.cont_cursor = (0,0)
+        self.sub_windows = []
         self.content_history = []
 
         if self.c2x == -1:
@@ -95,10 +124,13 @@ class Window:
         self.win_height = ((self.c2y - self.c1y)-1)
 
     def win_upd_cont(self, content, strict=True, auto_newline=True, content_hist_bool=False):
-        if self.last_content[-1] == " " or content[0] == " ":
-            new_cont = self.last_content + content
-        else:
-            new_cont = self.last_content + " " + content
+        try:
+            if self.last_content[-1] == " " or content[0] == " " or self.last_content[-1] == "╳" or content[0] == "╳":
+                new_cont = self.last_content + content
+            else:
+                new_cont = self.last_content + " " + content
+        except:
+            new_cont = content
 
         self.win_raw_cont(new_cont, strict, auto_newline, content_hist_bool)
 
@@ -111,12 +143,16 @@ class Window:
             else:
                 self.win_upd_cont("╳" + f" {segment}", True, False)
 
+    def win_subwinadd(self,corner1x, corner1y, size=10, corner2x=-1, corner2y=-1,title="WIN",):
+        self.sub_windows.append(title)
+        self.sub_windows[-1] = Window(corner1x, corner1y, size, corner2x, corner2y)
 
     def win_raw_cont(self, content, strict=True, auto_newline=True, content_hist_bool=False):
         self.last_content = content
-
+        self.strict_toggle = strict
+        self.auto_newline_toggle = auto_newline
         if content_hist_bool == True:
-            content_history.append(content)
+            self.content_history.append(content)
 
         if strict == True:
             y=1
@@ -158,26 +194,28 @@ class Window:
                     self.cont_cursor = ((self.c1x + x) + 1, self.c1y + y)
                 x+=1
         
-    def win_draw(self, overwrite_content=True, vert="│", horiz="─", ul_cor="┌", ur_cor="┐", ll_cor="└", lr_cor="┘"):
+    def win_draw(self, border=True, vert="│", horiz="─", ul_cor="┌", ur_cor="┐", ll_cor="└", lr_cor="┘"):
         iy = self.c1y
         while iy <= self.c2y:
-            screen_write(self.c1x,iy,vert)
-            screen_write(self.c2x,iy,vert)
+            if border == True:
+                screen_write(self.c1x,iy,vert)
+                screen_write(self.c2x,iy,vert)
             ix = self.c1x
             while ix <= self.c2x:
-                if ix == self.c1x:
+                if ix == self.c1x and border == True:
                     screen_write(ix,self.c1y,ul_cor)
                     screen_write(ix,self.c2y,ll_cor)
-                elif ix == self.c2x:
+                elif ix == self.c2x and border == True:
                     screen_write(ix,self.c1y,ur_cor)
                     screen_write(ix,self.c2y,lr_cor)
-                elif ix != self.c1x and ix != self.c2x and iy != self.c1y and iy != self.c2y and overwrite_content == True:
+                elif ix != self.c1x and ix != self.c2x and iy != self.c1y and iy != self.c2y:
                     screen_write(ix,iy," ")
-                else:
+                elif border == True:
                     screen_write(ix,self.c1y,horiz)
                     screen_write(ix,self.c2y,horiz)
                 ix += 1
             iy += 1
+        self.win_raw_cont(self.last_content, self.strict_toggle, self.auto_newline_toggle, False)
 
     def win_ret_size(self):
         width = self.win_width
@@ -217,6 +255,7 @@ class Window:
                 screen_write(ix,iy," ")
                 ix += 1
             iy += 1
+        self.last_content = ""
 
 # ─│┌┐└┘├┤┬┴┼█░▒╱╲╳
 
@@ -233,3 +272,21 @@ class Window:
 
 # 	▀ 	▁ 	▂ 	▃ 	▄ 	▅ 	▆ 	▇ 	█ 	▉ 	▊ 	▋ 	▌ 	▍ 	▎ 	▏
 # 	▐ 	░ 	▒ 	▓ 	▔ 	▕ 	▖ 	▗ 	▘ 	▙ 	▚ 	▛ 	▜ 	▝ 	▞ 	▟ 
+
+# ▛▀▜ ▙▄▟
+
+#### example for making a root window with subwindows that are in a list and can be iterated
+
+#term_size = os.get_terminal_size()
+#term_width = (term_size.columns - 1)    # Adjustments necessary to avoid writing beyond screen buffer
+#term_height = (term_size.lines - 2)     #
+
+#overlay_sys_init(term_size.columns, term_size.lines)
+
+#testwindow = Window(0,0)
+#testwindow.win_subwinadd(0,0,5)
+
+#testwindow.win_draw()
+#testwindow.sub_windows[0].win_draw()
+
+#screen_print()
