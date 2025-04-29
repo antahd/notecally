@@ -5,6 +5,29 @@ from overlaysystem import screen_dbg_tape, overlay_sys_init, screen_print, Windo
 from callogic import construct_month, construct_year
 from cal_ovl_lib import footer_decor, foot_cont, calparse, cal_ovl_init, calendar_render, cal_gen_year, cls_sub_win
 
+'''
+
+Move these control function calls to cal_ovl_lib (init), the menu should contain minimal required functionality for the menu system
+
+Create a new rendering system in overlaysystem in which windows are list based, list indices are moved around with seperate functions and screen can be refreshed
+
+New windowing system is "sort of" done in the Window class, however adding a purely function based one may be slightly faster.
+
+
+
+
+
+
+
+added a window list for the Window class and seperately as a part of
+a non class based window rendering system that i plan for use after this course is 
+over or potentially in "micro apps" for my system or a revision for the current display method
+
+i fixed a bug where a part of the date parsing code would occasionally overflow and try to add a date number to a nonexistant 8th week day
+
+i cleaned up menu.py and moved all non interactive UI handling to cal_olv_lib.py
+'''
+
 term_size = os.get_terminal_size()
 
 cal_windowing = cal_ovl_init(term_size, False) # Warning set to false
@@ -40,8 +63,6 @@ def cal_shell():
     
         control_window.win_draw()
         viewport_main.win_draw()
-        statusbar.win_clear()
-        statusbar.win_segment_cont(["Commands |"," :help/:h (Help)"," :quit/:q (Quit)"])
         statusbar.win_draw()
 
         foot_cont(" ",1)

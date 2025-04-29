@@ -217,6 +217,9 @@ class Window:
             iy += 1
         self.win_raw_cont(self.last_content, self.strict_toggle, self.auto_newline_toggle, False)
 
+    def win_refresh(self):
+        self.win_raw_cont(self.last_content, self.strict_toggle, self.auto_newline_toggle, False)
+
     def win_ret_size(self):
         width = self.win_width
         height = self.win_height
@@ -244,7 +247,7 @@ class Window:
         else:
             return val
 
-    def win_clear(self, destr_brdr=False):
+    def win_clear(self, destr_brdr=False, destr_last_content=False):
         ctrl_value = 0
         if destr_brdr == False:
             ctrl_value = 1
@@ -255,7 +258,8 @@ class Window:
                 screen_write(ix,iy," ")
                 ix += 1
             iy += 1
-        self.last_content = ""
+        if destr_last_content == True:
+            self.last_content = ""
 
 # ─│┌┐└┘├┤┬┴┼█░▒╱╲╳
 
