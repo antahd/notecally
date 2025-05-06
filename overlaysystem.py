@@ -247,7 +247,7 @@ class Window:
         else:
             return val
 
-    def win_clear(self, destr_brdr=False, destr_last_content=False):
+    def win_clear(self, destr_brdr=False):
         ctrl_value = 0
         if destr_brdr == False:
             ctrl_value = 1
@@ -258,8 +258,8 @@ class Window:
                 screen_write(ix,iy," ")
                 ix += 1
             iy += 1
-        if destr_last_content == True:
-            self.last_content = ""
+        self.last_content = ""
+        self.content_history = []
 
 # ─│┌┐└┘├┤┬┴┼█░▒╱╲╳
 

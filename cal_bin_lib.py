@@ -4,19 +4,18 @@ from binhandler import bin_encode, bin_decode, bin_write, bin_read, binary_sys_i
 
 hbc = 32 # header byte count
 
-binary_sys_init(False,0,False)
-
 def header_gen(id_input, name_input, date_input): # tuple; first index contains only own uuid, second index contains potential dependencies, third index contains items which depend on self
     header_self = id_gen("SELF",id_input[0])
-    header_dep_on = []
-    header_dep_of = []
+    header_dep_on = ()
+    header_dep_of = ()
     if len(id_input) > 1:
         for item in id_input[1]:
-            header_dep_on.append(id_gen("DEPENDS_ON",item))
+            header_dep_on += id_gen("DEPENDS_ON",item)
     if len(id_input) == 3:
         for item in id_input[2]:
-            header_dep_of.append(id_gen("DEPENDANT_OF",item))
-    return header_self + tuple(header_dep_on) + tuple(header_dep_of) + name_input + (50,51) + date_input + (30,31)
+            header_dep_of += id_gen("DEPENDANT_OF",item)
+    
+    return header_self + header_dep_on + header_dep_of + name_input + (50,51) + date_input + (30,31)
 
 def id_gen(id_type,uuid,debug=False):
     bin_buffer = []
@@ -65,6 +64,10 @@ def header_scalpel(target_file, offset=0):
         byte = file.read(1)
         cursor_pos+=1
         watchdog+=1
+
+        if not byte:
+            file.close()
+            break
 
         if int.from_bytes(byte) == 10: # start of id
             byte = file.read(1)
@@ -118,7 +121,7 @@ def header_scalpel(target_file, offset=0):
                 year = (ML,YYY,MM,DD)
                 file.seek(cursor_pos,0)
 
-        if int.from_bytes(byte) == 40: # start of depends on
+        if int.from_bytes(byte) == 40:
             byte = file.read(1)
             if int.from_bytes(byte) == 41:
                 watchdog = 0
@@ -173,52 +176,127 @@ def read_note(note, parse_text=False):
         text = "".join(bin_decode(bin_read_precise(note,scalpel[-1])))
     note_name = scalpel[3]
     date = date_decode(scalpel[4])
-    return (date, text, scalpel[0], scalpel[1], scalpel[2], note_name)   # needs a name system, copy pasting a block from scalpel in the scalpel function and then using bin_decode to decode name
+    return (date, text, scalpel[0], scalpel[1], scalpel[2], note_name)
 
-def write_note(date_in, id_input, name, content, depon = (), depof = ()): # needs to be figured out properly later
+def write_note(date_in, id_input, name, content, depon = (), depof = (), append_db = True, produce_note = True):
     note_name = name_gen(name)
-    filename = name.replace(" ","_") + ".dat"
+    filename = name.replace(" ","_") + ".bin"
     id_tuple = (id_input,depon,depof) 
     header = header_gen(id_tuple, note_name, date_in)
     output_content = bin_encode(content)
 
-    #bin_write("nt_index.bin",header,"ab")
-    #print(header)
-    bin_write(filename,header,"wb")
-    bin_write(filename,output_content,"ab")
+    if append_db == True:
+        bin_write("nt_index.dat",header,"ab")
 
-#def note_db_scan(target_file="nt_index.bin", debug=False):
+    if produce_note == True:
+        bin_write(filename,header,"wb")
+        bin_write(filename,output_content,"ab")
 
+def note_db_scan(increment_amount=False, offset=0, amount=4000, target_file="nt_index.dat", debug=False):
+    data_stream = []
+    watchdog = 0
+    amount_incr = 0
+    with open(target_file, 'rb') as file:
+        file.seek(offset, 0)
+        while watchdog < 4000 and amount_incr < amount:
+            watchdog += 1
+            if increment_amount == True:
+                amount_incr += 1
+            byte = file.read(1)
+            if not byte:
+                file.close()
+                break
 
-    
+            if int.from_bytes(byte) == 30: # 10 11 self, 20 21 dep on, 22 23 dep of, 40 41 name, 50 51 date, 30 31 EOF
+                cursor_restore = file.tell()
+                value = file.read(1)
+                if int.from_bytes(value) == 31:
+                    data_stream.append("BRK")
+                    watchdog = 0
+                else:
+                    file.seek(cursor_restore,0)
 
+            elif int.from_bytes(byte) == 10:
+                cursor_restore = file.tell()
+                value = file.read(1)
+                if int.from_bytes(value) == 11:
+                    data_stream.append("UUID")
+                    watchdog = 0
+                    uuid = 0
+                    for _ in range(0,hbc):
+                        value = file.read(1)
+                        uuid += int.from_bytes(value)
+                    data_stream.append(uuid)
+                else:
+                    file.seek(cursor_restore,0)
 
+            elif int.from_bytes(byte) == 20:
+                cursor_restore = file.tell()
+                value = file.read(1)
+                if int.from_bytes(value) == 21:
+                    data_stream.append("DEP ON")
+                    watchdog = 0
+                    dpon_uuid = 0
+                    for _ in range(0,hbc):
+                        value = file.read(1)
+                        dpon_uuid += int.from_bytes(value)
+                    data_stream.append(dpon_uuid)
+                else:
+                    file.seek(cursor_restore,0)
 
+            elif int.from_bytes(byte) == 22:
+                cursor_restore = file.tell()
+                value = file.read(1)
+                if int.from_bytes(value) == 23:
+                    data_stream.append("DEP OF")
+                    watchdog = 0
+                    dpof_uuid = 0
+                    for _ in range(0,hbc):
+                        value = file.read(1)
+                        dpof_uuid += int.from_bytes(value)
+                    data_stream.append(dpof_uuid)
+                else:
+                    file.seek(cursor_restore,0)
+            
+            elif int.from_bytes(byte) == 40:
+                cursor_restore = file.tell()
+                value = file.read(1)
+                if int.from_bytes(value) == 41:
+                    data_stream.append("TITLE")
+                    watchdog = 0
+                    note_name_list = []
+                    for _ in range(0,hbc):
+                        value = file.read(1)
+                        note_name_list.append(int.from_bytes(value))
+                    note_name = "".join(bin_decode(note_name_list))
+                    data_stream.append(note_name)
+                else:
+                    file.seek(cursor_restore,0)
+            
+            elif int.from_bytes(byte) == 50:
+                cursor_restore = file.tell()
+                value = file.read(1)
+                if int.from_bytes(value) == 51:
+                    ML = 0
+                    YYY = 0
+                    MM = 0
+                    DD = 0
+                    for _ in range(0,1):
+                        value = file.read(1)
+                        ML += int.from_bytes(value)
+                    for _ in range(0,4):
+                        value = file.read(1)
+                        YYY += int.from_bytes(value)
+                    value = file.read(1)
+                    MM = int.from_bytes(value)
+                    value = file.read(1)
+                    DD = int.from_bytes(value)
+                    year = (ML,YYY,MM,DD)
+                    data_stream.append("YEAR")
+                    watchdog = 0
+                    data_stream.append(year)
+                    file.seek(cursor_restore,0)
+                else:
+                    file.seek(cursor_restore,0)
 
-
-    #database = []
-    #length = file_len(target_file)
-    #i=0
-    #offset = 0
-    #while i < length:
-    #    data = header_scalpel(target_file, offset)
-    #    offset = data[-1]
-    #    database.append(data)
-    #    print(offset)
-    #    print(database)
-    #    i += offset
-
-#write_note((2,25,0,0,0,4,24), 667,":(","this didnt work out as i had hoped")
-#write_note((2,26,0,0,0,8,20), 668,"get off my lawn","this didnt work")
-#write_note((2,27,0,0,0,6,31), 669,"now","this")
-#print(bin_read("Hello_World_this_is_my_note.dat"))
-#print(read_note("yippee_third.dat",True))
-
-#print(file_len("nt_index.bin"))
-
-#note_db_scan()
-
-#print(bin_read("nt_index.bin"))
-
-print(header_scalpel("nt_index.bin"))
-print(header_scalpel("nt_index.bin",78))
+    return (tuple(data_stream),amount_incr)

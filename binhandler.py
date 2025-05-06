@@ -29,7 +29,7 @@ def bin_encode(content):
     bin_op_buffer = []
     i=0
     while i < len(content):
-        bin_op_buffer += (bin_decimals[bin_characters.index(content[i])],)
+        bin_op_buffer.append(bin_decimals[bin_characters.index(content[i])])
         i+=1
     return tuple(bin_op_buffer)
 
@@ -46,7 +46,7 @@ def bin_read(target_file, debug=False):
             if not byte:
                 file.close()
                 break
-            character_index_data += (int.from_bytes(byte),)
+            character_index_data.append(int.from_bytes(byte))
     return tuple(character_index_data)
 
 def bin_read_precise(target_file, offset=0, amount=-1, debug=False):
@@ -59,7 +59,7 @@ def bin_read_precise(target_file, offset=0, amount=-1, debug=False):
             if not byte:
                 file.close()
                 break
-            character_index_data += (int.from_bytes(byte),)
+            character_index_data.append(int.from_bytes(byte))
             i+=1
     return tuple(character_index_data)
     
@@ -69,7 +69,7 @@ def bin_decode(input_data, debug=False):
     while i < len(input_data):
         if input_data[i] == 0:
             break
-        txt_print_buffer += (bin_characters[bin_decimals.index(input_data[i])],)
+        txt_print_buffer.append(bin_characters[bin_decimals.index(input_data[i])])
         i+=1
     if debug == True:
         print(''.join(txt_print_buffer))
