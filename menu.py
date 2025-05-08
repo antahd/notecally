@@ -87,7 +87,7 @@ def cal_shell():
 
         if usr == ":h" or usr == ":help":
             statusbar.win_clear()
-            statusbar.win_segment_cont(["",":1-:12 Cycles calendar month |", "To quit do :q |",":rfr (re-print screen) |",":tp (debug tape) |", "To switch years do :y |"])        
+            statusbar.win_segment_cont(["",":1-:12 Cycles calendar month |", "To quit do :q |",":rfr (re-print screen) |",":tp (debug tape) |", "To switch years do :y |",":nr Read note |",":nw Note write |",":clr Clear entire screen"])        
         elif usr == ":y" or usr == ":year":
             foot_cont(f"Last command issued: {usr}")
             screen_print()
