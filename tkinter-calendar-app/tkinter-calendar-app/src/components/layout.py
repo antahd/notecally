@@ -4,6 +4,7 @@ from tkinter import messagebox
 from datetime import datetime
 from calendar import monthrange
 import sqlite3
+import os  
 
 # Kuukaudet suomeksi
 kuukaudet_suomeksi = [
@@ -16,32 +17,36 @@ selected_month = None  # Tämä aikoinaan tarvittiin.
 
 # Aloita databse - myöhemmin muuta if statementiksi
 def initialize_database():
-    conn = sqlite3.connect("events.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT NOT NULL,
-            event_name TEXT NOT NULL,
-            event_description TEXT
-        )
-    """)
-    conn.commit()
+    db_path = "events.db"
+    
+    # Tarkista, onko tietokanta olemassa
+    if not os.path.exists(db_path):
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL,
+                event_name TEXT NOT NULL,
+                event_description TEXT
+            )
+        """)
+        conn.commit()
 
-    # Insert 4 initial events
-    cursor.execute("DELETE FROM events") # Tyhjennys - Poista myöhemmin
-    initial_events = [
-        ("2025-01-01", "Uudenvuodenpäivä", "Vuoden ensimmäinen päivä"),
-        ("2025-02-14", "Ystävänpäivä", "Muista ystäviäsi ja rakkaitasi"),
-        ("2025-03-08", "Kansainvälinen naistenpäivä", "Juhlistetaan naisia"),
-        ("2025-04-01", "Aprillipäivä", "Hauskoja kepposia")
-    ]
-    cursor.executemany("""
-        INSERT INTO events (date, event_name, event_description)
-        VALUES (?, ?, ?)
-    """, initial_events)
-    conn.commit()
-    conn.close()
+        initial_events = [
+            ("2025-01-01", "Uudenvuodenpäivä", "Vuoden ensimmäinen päivä"),
+            ("2025-02-14", "Ystävänpäivä", "Muista ystäviäsi ja rakkaitasi"),
+            ("2025-03-08", "Kansainvälinen naistenpäivä", "Juhlistetaan naisia"),
+            ("2025-04-01", "Aprillipäivä", "Hauskoja kepposia")
+        ]
+        cursor.executemany("""
+            INSERT INTO events (date, event_name, event_description)
+            VALUES (?, ?, ?)
+        """, initial_events)
+        conn.commit()
+        conn.close()
+    else:
+        print(f"Database '{db_path}' already exists. Skipping initialization.")
 
 # Etsi tiedot
 def fetch_events_for_month(month_index):
@@ -62,15 +67,15 @@ def create_layout():
     root = tk.Tk()
     root.title("Kalenterinäkymä")
     root.geometry("1200x800")
-    root.configure(bg="#F5DEB3")
+    root.configure(bg="#5CA4A9")  
 
-    left_frame = tk.Frame(root, bg="#DEB887", width=200, height=600)
+    left_frame = tk.Frame(root, bg="#A7D8DE", width=200, height=600)  
     left_frame.pack(side="left", fill="y")
 
     # Lisää vierityspalkki ja canvas vasemmalle kehykselle
-    canvas = tk.Canvas(left_frame, bg="#F5DEB3", width=280, height=600, highlightthickness=0)
+    canvas = tk.Canvas(left_frame, bg="#5CA4A9", width=280, height=600, highlightthickness=0)  
     scrollbar = tk.Scrollbar(left_frame, orient="vertical", command=canvas.yview)
-    scrollable_frame = tk.Frame(canvas, bg="#F5DEB3", width=280)
+    scrollable_frame = tk.Frame(canvas, bg="#5CA4A9", width=280)  
 
     scrollable_frame.bind(
         "<Configure>",
@@ -94,7 +99,7 @@ def create_layout():
         button = tk.Button(
             scrollable_frame,
             text=f"{month}",
-            bg="#DEB887",
+            bg="#A7D8DE",  
             fg="#000000",
             font=("Arial", 14),
             width=24,
@@ -111,7 +116,7 @@ def create_layout():
             if getattr(widget, "is_calendar", False):
                 widget.destroy()
 
-        dates_frame = tk.Frame(scrollable_frame, bg="#F5DEB3", width=260)
+        dates_frame = tk.Frame(scrollable_frame, bg="#5CA4A9", width=260) 
         dates_frame.is_calendar = True
         dates_frame.pack(fill="x", pady=5, after=month_button)
 
@@ -166,35 +171,97 @@ def create_layout():
             event_date, event_name, event_description = event
             events_listbox.insert(tk.END, f"{event_date}: {event_name} - {event_description}")
 
-    right_frame = tk.Frame(root, bg="#FFF8DC", width=600, height=400)
+    right_frame = tk.Frame(root, bg="#2a7f8e", width=600, height=400)  
     right_frame.pack(side="top", fill="both", expand=True)
 
-    events_label = tk.Label(right_frame, text=f"Tapahtumat kuukaudelle {nykyinen_kuukausi}", bg="#FFF8DC", fg="#000000", font=("Arial", 18))
+    # Load the background image
+    background_image_path = os.path.join(os.getcwd(), "background.png")
+    if not os.path.exists(background_image_path):
+        raise FileNotFoundError(f"Background image not found at {background_image_path}")
+
+    background_image = tk.PhotoImage(file=background_image_path)
+
+    
+    events_label = tk.Label(
+        right_frame,
+        text=f"Tapahtumat kuukaudelle {nykyinen_kuukausi}",
+        bg="#2a7f8e",  
+        fg="#000000",
+        font=("Arial", 18),
+        image=background_image,
+        compound="center" 
+    )
+    events_label.image = background_image  
     events_label.pack(pady=10)
 
-    events_listbox = tk.Listbox(right_frame, bg="#FAEBD7", fg="#000000", font=("Arial", 14), height=20)
+    events_listbox = tk.Listbox(right_frame, bg="#2a7f8e", fg="#000000", font=("Arial", 14), height=20) 
     events_listbox.pack(fill="both", expand=True, padx=10, pady=10)
 
-    bottom_frame = tk.Frame(root, bg="#DEB887", height=200)
+    bottom_frame = tk.Frame(root, bg="#A7D8DE", height=200) 
     bottom_frame.pack(side="bottom", fill="x")
 
-    event_name_label = tk.Label(bottom_frame, text="Tapahtuman nimi:", bg="#DEB887", font=("Arial", 12))
+    event_name_label = tk.Label(bottom_frame, text="Tapahtuman nimi:", bg="#A7D8DE", font=("Arial", 12))  
     event_name_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
-    event_name_entry = tk.Entry(bottom_frame, width=30)
-    event_name_entry.grid(row=1, column=1, padx=10, pady=5)
+    
+    input_image_path = os.path.join(os.getcwd(), "input.png")
+    if not os.path.exists(input_image_path):
+        raise FileNotFoundError(f"Input image not found at {input_image_path}")
 
-    event_date_label = tk.Label(bottom_frame, text="Tapahtuman päivämäärä (MM-DD):", bg="#DEB887", font=("Arial", 12))
+    input_image = tk.PhotoImage(file=input_image_path)
+
+   
+    event_name_bg = tk.Label(bottom_frame, image=input_image, bg="#a7d8de")
+    event_name_bg.image = input_image  
+    event_name_bg.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+
+    
+    def position_event_name_entry():
+        event_name_entry.place(
+            x=event_name_bg.winfo_x() + 10,
+            y=event_name_bg.winfo_y() + 5,
+            width=event_name_bg.winfo_width() - 20,
+            height=event_name_bg.winfo_height() - 10
+        )
+
+    event_name_entry = tk.Entry(bottom_frame, bg="#95acac", bd=0, highlightthickness=0, font=("Arial", 12))
+    bottom_frame.after(100, position_event_name_entry)
+
+    event_date_label = tk.Label(bottom_frame, text="Tapahtuman päivämäärä (MM-DD):", bg="#a7d8de", font=("Arial", 12))
     event_date_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
-    event_date_entry = tk.Entry(bottom_frame, width=30)
-    event_date_entry.grid(row=2, column=1, padx=10, pady=5)
+    event_date_bg = tk.Label(bottom_frame, image=input_image, bg="#a7d8de")
+    event_date_bg.image = input_image
+    event_date_bg.grid(row=2, column=1, padx=10, pady=5, sticky="w")
 
-    event_description_label = tk.Label(bottom_frame, text="Tapahtuman kuvaus:", bg="#DEB887", font=("Arial", 12))
+    def position_event_date_entry():
+        event_date_entry.place(
+            x=event_date_bg.winfo_x() + 10,
+            y=event_date_bg.winfo_y() + 5,
+            width=event_date_bg.winfo_width() - 20,
+            height=event_date_bg.winfo_height() - 10
+        )
+
+    event_date_entry = tk.Entry(bottom_frame, bg="#95acac", bd=0, highlightthickness=0, font=("Arial", 12))
+    bottom_frame.after(100, position_event_date_entry)
+
+    event_description_label = tk.Label(bottom_frame, text="Tapahtuman kuvaus:", bg="#a7d8de", font=("Arial", 12))
     event_description_label.grid(row=3, column=0, padx=10, pady=5, sticky="w")
 
-    event_description_entry = tk.Entry(bottom_frame, width=30)
-    event_description_entry.grid(row=3, column=1, padx=10, pady=5)
+    event_description_bg = tk.Label(bottom_frame, image=input_image, bg="#a7d8de")
+    event_description_bg.image = input_image
+    event_description_bg.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+
+    def position_event_description_entry():
+        event_description_entry.place(
+            x=event_description_bg.winfo_x() + 10,
+            y=event_description_bg.winfo_y() + 5,
+            width=event_description_bg.winfo_width() - 20,
+            height=event_description_bg.winfo_height() - 10
+        )
+
+    event_description_entry = tk.Entry(bottom_frame, bg="#95acac", bd=0, highlightthickness=0, font=("Arial", 12))
+    bottom_frame.after(100, position_event_description_entry)
 
     def add_event():
         event_name = event_name_entry.get()
@@ -309,16 +376,16 @@ def create_layout():
                                 tk.messagebox.showerror("Virheellinen päivämäärä", "Anna päivämäärä muodossa MM-DD.")
 
                     # Tallenna nappula ei ole väliaikainen se pitää korjata
-                    save_button = tk.Button(bottom_frame, text="Tallenna muutokset", bg="#F5DEB3", fg="#000000", font=("Arial", 12), command=save_changes)
+                    save_button = tk.Button(bottom_frame, text="Tallenna muutokset", bg="#E0FFFF", fg="#000000", font=("Arial", 12), command=save_changes)
                     save_button.grid(row=4, column=2, padx=10, pady=5, sticky="ns")
 
-    edit_button = tk.Button(bottom_frame, text="Muokkaa tapahtumaa", bg="#F5DEB3", fg="#000000", font=("Arial", 12), command=edit_event)
+    edit_button = tk.Button(bottom_frame, text="Muokkaa tapahtumaa", bg="#E0FFFF", fg="#000000", font=("Arial", 12), command=edit_event)
     edit_button.grid(row=4, column=1, padx=10, pady=5, sticky="ns")
 
-    add_button = tk.Button(bottom_frame, text="Lisää tapahtuma", bg="#F5DEB3", fg="#000000", font=("Arial", 12), command=add_event)
+    add_button = tk.Button(bottom_frame, text="Lisää tapahtuma", bg="#E0FFFF", fg="#000000", font=("Arial", 12), command=add_event)
     add_button.grid(row=1, column=2, rowspan=2, padx=10, pady=5, sticky="ns")
 
-    delete_button = tk.Button(bottom_frame, text="Poista tapahtuma", bg="#F5DEB3", fg="#000000", font=("Arial", 12), command=delete_event)
+    delete_button = tk.Button(bottom_frame, text="Poista tapahtuma", bg="#E0FFFF", fg="#000000", font=("Arial", 12), command=delete_event)
     delete_button.grid(row=3, column=2, padx=10, pady=5, sticky="ns")
 
     # Valitse nykyinen kuukausi tärkeä
