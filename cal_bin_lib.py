@@ -4,6 +4,8 @@ from binhandler import bin_encode, bin_decode, bin_write, bin_read, binary_sys_i
 
 hbc = 32 # header byte count
 
+#binary_sys_init(False,0,False)
+
 def header_gen(id_input, name_input, date_input): # tuple; first index contains only own uuid, second index contains potential dependencies, third index contains items which depend on self
     header_self = id_gen("SELF",id_input[0])
     header_dep_on = ()
@@ -121,7 +123,7 @@ def header_scalpel(target_file, offset=0):
                 year = (ML,YYY,MM,DD)
                 file.seek(cursor_pos,0)
 
-        if int.from_bytes(byte) == 40:
+        if int.from_bytes(byte) == 40: # start of depends on
             byte = file.read(1)
             if int.from_bytes(byte) == 41:
                 watchdog = 0
@@ -176,9 +178,9 @@ def read_note(note, parse_text=False):
         text = "".join(bin_decode(bin_read_precise(note,scalpel[-1])))
     note_name = scalpel[3]
     date = date_decode(scalpel[4])
-    return (date, text, scalpel[0], scalpel[1], scalpel[2], note_name)
+    return (date, text, scalpel[0], scalpel[1], scalpel[2], note_name)   # needs a name system, copy pasting a block from scalpel in the scalpel function and then using bin_decode to decode name
 
-def write_note(date_in, id_input, name, content, depon = (), depof = (), append_db = True, produce_note = True):
+def write_note(date_in, id_input, name, content, depon = (), depof = (), append_db = True, produce_note = True): # needs to be figured out properly later
     note_name = name_gen(name)
     filename = name.replace(" ","_") + ".bin"
     id_tuple = (id_input,depon,depof) 

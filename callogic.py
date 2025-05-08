@@ -1,5 +1,9 @@
 #! /bin/python3
 
+# Disclaimer: typically it is considered extremely bad practice to create your own date system,
+# I just wanted to make one as a learning experience.
+# 18.4.2025 3:30 AM i feel like appending to this disclaimer, yeah it was kind of a bad idea haha
+# But __date_parse "fixed" now
 
 def __date_parse(wkd_index, max_days,debug=False):
     i = 1
@@ -27,6 +31,14 @@ def __date_parse(wkd_index, max_days,debug=False):
         i+=1
     month = tuple(month)
     return month
+
+
+'''
+what in the actual flying fuck, a leap year set to start on thursday crashes the system
+because somehow "d" in date parse can go runaway and end up being higher than 6
+
+
+'''
 
 def construct_month(month_name,max_days,wkd_index,debug=False):
     vertibar = "│"

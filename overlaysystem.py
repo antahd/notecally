@@ -125,8 +125,8 @@ class Window:
 
     def win_upd_cont(self, content, strict=True, auto_newline=True, content_hist_bool=False):
         try:
-            if self.last_content[-1] == " " or content[0] == " " or self.last_content[-1] == "╳" or content[0] == "╳":
-                new_cont = self.last_content + content
+            if self.last_content[-1] == " " or content[0] == " " or self.last_content[-1] == "╳" or content[0] == "╳" or self.last_content[-1] == "╱" or content[0] == "╱" or self.last_content[-1] == "╲" or content[0] == "╲" or self.last_content[-1] == "┼" or content[0] == "┼":
+                new_cont = self.last_content + content # ╲ ┼
             else:
                 new_cont = self.last_content + " " + content
         except:
