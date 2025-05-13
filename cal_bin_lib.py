@@ -110,7 +110,7 @@ def header_scalpel(target_file, offset=0):
                 YYY = 0
                 MM = 0
                 DD = 0
-                for _ in range(0,1):
+                for _ in range(0,1): # refactor, for loop redundant, adding to millenium is also redundant
                     value = file.read(1)
                     ML += int.from_bytes(value)
                 for _ in range(0,4):

@@ -1,11 +1,10 @@
 #! /bin/python3
 
 import os # make optional, add a configuration system to generate a first time config potentially with user interaction
-from overlaysystem import screen_dbg_tape, overlay_sys_init, screen_print, Window, screen_clear
-from callogic import construct_month, construct_year
+from overlaysystem import screen_dbg_tape, screen_print, Window, screen_clear
 from binhandler import binary_sys_init
-from cal_ovl_lib import footer_decor, foot_cont, calparse, cal_ovl_init, calendar_render, cal_gen_year, rfr_sub_win
-from cal_bin_lib import note_db_scan, read_note, write_note, file_len, header_scalpel
+from cal_ovl_lib import footer_decor, foot_cont, cal_ovl_init, calendar_render, cal_gen_year, rfr_sub_win
+from cal_bin_lib import note_db_scan, read_note, write_note, file_len
 
 term_size = os.get_terminal_size()
 
@@ -18,7 +17,7 @@ binary_sys_init(False,0,False)
 
 def menushell_sys_init():
 
-    cal_gen_year("2025",2,False) # yeardb missing... what are you doing?
+    cal_gen_year("2025",2,False) # rework this to a more sane approach where year switching causes year generation
     cal_gen_year("2026",3,False)
     cal_gen_year("2027",4,False)
     cal_gen_year("2028",5,True)
@@ -63,7 +62,7 @@ def menushell_sys_init():
         file = open("nt_index.dat", 'wb')
         file.close()
         
-    #print(notelisting)
+    print(notelisting)
 
 menushell_sys_init()
 
@@ -114,6 +113,8 @@ def cal_shell():
                 note = read_note(ntread, True)
                 viewport_main.win_clear()
                 viewport_main.win_raw_cont(note[1])
+                statusbar.win_clear()
+                statusbar.win_raw_cont(f"ID: {note[2]}   Title: {note[5]}╳Date: {str(note[0][0])}.{str(note[0][1])}.{str(note[0][2])}")
             except:
                 statusbar.win_clear()
                 statusbar.win_segment_cont(["","Error:", "Invalid note name or other exception"])
@@ -126,23 +127,76 @@ def cal_shell():
         elif usr == ":nw":
             writing = True
             error_state = False
+            histbool = False
             while writing == True:
                 if error_state == False:
                     statusbar.win_clear()
-                    statusbar.win_segment_cont(["",":X Cancel writing", ":d Done & Save.",":clr Clear", "| Special edit commands:","/u /d /l /r for", "Up, Down, Left, Right"])
+                    statusbar.win_segment_cont(["",":X Cancel", ":d Done/Save.",":clr Clear", "| Special", " commands:","/u /d", "/l /r for", "Up, Down,", "Left, Right","| :T","<amount>","<char>","Repeat <char>"])
                 screen_print()
                 error_state = False
                 usr = input("Write to note   $: ")
                 if usr == ":clr":
                     viewport_main.win_clear()
+                elif usr == ":hist":
+                    if histbool == False:
+                        histbool = True
+                    else:
+                        histbool = False
 
-                elif usr != ":X" and usr != ":d":
+                elif usr == ":ud":
+                    rev_exist = len(viewport_main.content_history)
+                    if rev_exist > 0:
+                        try:
+                            undo_val = input(f"How far to undo? {rev_exist} previous entries exist.   $: ")
+                            undo_val = (rev_exist - 1) - int(undo_val)
+                            print(undo_val)
+                            print(viewport_main.content_history)
+                            print(viewport_main.content_history[undo_val])
+                            sel_revision = viewport_main.content_history[undo_val]
+                            viewport_main.win_clear()
+                            viewport_main.win_raw_cont(sel_revision)
+                        except:
+                            statusbar.win_clear()
+                            statusbar.win_segment_cont(["","Error:", "Invalid user", "input.",""])
+                            error_state = True
+                    else:
+                        statusbar.win_clear()
+                        statusbar.win_segment_cont(["","Error:", "Content history", "doesn't","exist!"])
+                        error_state = True
+
+                elif len(usr) > 0 and usr[0] == ":" and usr[1] == "T":
+                    try:
+                        if usr[2] == " ":
+                            command = usr.split(" ")
+                            print(command)
+                            factor = command[1]
+                            print(factor)
+                            variable = command[2]
+                            print(variable)
+                            output = ""
+                            for _ in range(0, int(factor)):
+                                output += variable
+                            output = output.replace("/u","┼")
+                            output = output.replace("/d","╳")
+                            output = output.replace("/r","╲")
+                            output = output.replace("/l","╱")
+                            if histbool == True and len(viewport_main.content_history) > 7:
+                                viewport_main.content_history.pop(0)
+                            viewport_main.win_upd_cont(output, True, True, histbool)
+                    except:
+                        statusbar.win_clear()
+                        statusbar.win_segment_cont(["","Error!", " usage :T <int> <symbols","to repeat>", "",""])
+                        error_state = True
+
+                elif usr != ":X" and usr != ":d" and len(usr) > 0:
                     usr = usr.replace("/u","┼")
                     usr = usr.replace("/d","╳")
                     usr = usr.replace("/r","╲")
                     usr = usr.replace("/l","╱")
 
-                    viewport_main.win_upd_cont(usr)
+                    if histbool == True and len(viewport_main.content_history) > 7:
+                        viewport_main.content_history.pop(0)
+                    viewport_main.win_upd_cont(usr, True, True, histbool)
                 
                 elif usr == ":X":
                     writing = False

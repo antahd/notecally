@@ -148,7 +148,8 @@ class Window:
         self.sub_windows[-1] = Window(corner1x, corner1y, size, corner2x, corner2y)
 
     def win_raw_cont(self, content, strict=True, auto_newline=True, content_hist_bool=False):
-        self.last_content = content
+        if self.last_content != content:
+            self.last_content = content
         self.strict_toggle = strict
         self.auto_newline_toggle = auto_newline
         if content_hist_bool == True:
@@ -259,7 +260,6 @@ class Window:
                 ix += 1
             iy += 1
         self.last_content = ""
-        self.content_history = []
 
 # ─│┌┐└┘├┤┬┴┼█░▒╱╲╳
 
