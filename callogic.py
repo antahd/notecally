@@ -1,5 +1,10 @@
 #! /bin/python3
 
+# Disclaimer: typically it is considered extremely bad practice to create your own date system,
+# I just wanted to make one as a learning experience.
+# 18.4.2025 3:30 AM i feel like appending to this disclaimer, yeah it was kind of a bad idea haha
+# But __date_parse "fixed" now
+
 def __date_parse(wkd_index, max_days,debug=False):
     i = 1
     d = wkd_index # 0 for monday, 6 for sunday
@@ -27,6 +32,14 @@ def __date_parse(wkd_index, max_days,debug=False):
     month = tuple(month)
     return month
 
+
+'''
+what in the actual flying fuck, a leap year set to start on thursday crashes the system
+because somehow "d" in date parse can go runaway and end up being higher than 6
+
+
+'''
+
 def construct_month(month_name,max_days,wkd_index,debug=False):
     vertibar = "│"
     tbar_spacer = "─"
@@ -39,8 +52,6 @@ def construct_month(month_name,max_days,wkd_index,debug=False):
     calendar = f"{month_header}{tbar_spacer}┐"
     display_month = [calendar,datebar]
     month = __date_parse(wkd_index, max_days,debug)
-
-    weeks = 0
 
     i=1
     while i <= max_days:
@@ -74,21 +85,20 @@ def construct_month(month_name,max_days,wkd_index,debug=False):
                 d_sun = day
             d+=1
         display_month.append(f"│ {d_mon} {d_tue} {d_wed} {d_thu} {d_fri} {d_sat} {d_sun} │")
-        weeks += 1
     
     display_month.append("└──────────────────────┘")
     display_month = tuple(display_month)
     if debug == True:
         for line in display_month:
             print(''.join(line))
-        print(f"({display_month},{weeks},{day_index})")
-    return (display_month,weeks,day_index) # remember +1 for continuation to next month
+        print(f"({display_month},{day_index})")
+    return (display_month,day_index) # remember +1 for continuation to next month
 
 def __parse_wkd_index(month):
-    if month[2] >= 6:
+    if month[1] >= 6:
         return 0
     else:
-        return (month[2] + 1)
+        return (month[1] + 1)
 
 def construct_year(wkd_index, leap_year=False,debug=False):
     jan = construct_month("January",31,wkd_index,False)
@@ -97,9 +107,9 @@ def construct_year(wkd_index, leap_year=False,debug=False):
     else:
         feb_days = 29
     wkd_index = __parse_wkd_index(jan)
-    feb = construct_month("February",feb_days,(jan[2] + 1),debug)
+    feb = construct_month("February",feb_days,wkd_index,debug)
     wkd_index = __parse_wkd_index(feb)
-    mar = construct_month("March",31,(feb[2] + 1),debug)
+    mar = construct_month("March",31,wkd_index,debug)
     wkd_index = __parse_wkd_index(mar)
     apr = construct_month("April",30,wkd_index,debug)
     wkd_index = __parse_wkd_index(apr)

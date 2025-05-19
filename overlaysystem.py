@@ -125,8 +125,8 @@ class Window:
 
     def win_upd_cont(self, content, strict=True, auto_newline=True, content_hist_bool=False):
         try:
-            if self.last_content[-1] == " " or content[0] == " " or self.last_content[-1] == "╳" or content[0] == "╳":
-                new_cont = self.last_content + content
+            if self.last_content[-1] == " " or content[0] == " " or self.last_content[-1] == "╳" or content[0] == "╳" or self.last_content[-1] == "╱" or content[0] == "╱" or self.last_content[-1] == "╲" or content[0] == "╲" or self.last_content[-1] == "┼" or content[0] == "┼":
+                new_cont = self.last_content + content # ╲ ┼
             else:
                 new_cont = self.last_content + " " + content
         except:
@@ -148,7 +148,8 @@ class Window:
         self.sub_windows[-1] = Window(corner1x, corner1y, size, corner2x, corner2y)
 
     def win_raw_cont(self, content, strict=True, auto_newline=True, content_hist_bool=False):
-        self.last_content = content
+        if self.last_content != content:
+            self.last_content = content
         self.strict_toggle = strict
         self.auto_newline_toggle = auto_newline
         if content_hist_bool == True:
@@ -215,6 +216,9 @@ class Window:
                     screen_write(ix,self.c2y,horiz)
                 ix += 1
             iy += 1
+        self.win_raw_cont(self.last_content, self.strict_toggle, self.auto_newline_toggle, False)
+
+    def win_refresh(self):
         self.win_raw_cont(self.last_content, self.strict_toggle, self.auto_newline_toggle, False)
 
     def win_ret_size(self):
