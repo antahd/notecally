@@ -125,8 +125,8 @@ class Window:
 
     def win_upd_cont(self, content, strict=True, auto_newline=True, content_hist_bool=False):
         try:
-            if self.last_content[-1] == " " or content[0] == " " or self.last_content[-1] == "╳" or content[0] == "╳":
-                new_cont = self.last_content + content
+            if self.last_content[-1] == " " or content[0] == " " or self.last_content[-1] == "╳" or content[0] == "╳" or self.last_content[-1] == "╱" or content[0] == "╱" or self.last_content[-1] == "╲" or content[0] == "╲" or self.last_content[-1] == "┼" or content[0] == "┼":
+                new_cont = self.last_content + content # ╲ ┼
             else:
                 new_cont = self.last_content + " " + content
         except:
@@ -148,7 +148,8 @@ class Window:
         self.sub_windows[-1] = Window(corner1x, corner1y, size, corner2x, corner2y)
 
     def win_raw_cont(self, content, strict=True, auto_newline=True, content_hist_bool=False):
-        self.last_content = content
+        if self.last_content != content:
+            self.last_content = content
         self.strict_toggle = strict
         self.auto_newline_toggle = auto_newline
         if content_hist_bool == True:
@@ -247,7 +248,7 @@ class Window:
         else:
             return val
 
-    def win_clear(self, destr_brdr=False, destr_last_content=False):
+    def win_clear(self, destr_brdr=False):
         ctrl_value = 0
         if destr_brdr == False:
             ctrl_value = 1
@@ -258,8 +259,10 @@ class Window:
                 screen_write(ix,iy," ")
                 ix += 1
             iy += 1
-        if destr_last_content == True:
-            self.last_content = ""
+        self.last_content = ""
+
+    def win_histclr(self):
+        self.content_history = []
 
 # ─│┌┐└┘├┤┬┴┼█░▒╱╲╳
 

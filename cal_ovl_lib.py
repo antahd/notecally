@@ -35,13 +35,13 @@ def cal_ovl_init(term_size, warning=True):
     control_window = Window(0, 0, 0, term_width_third, (term_height - 3))
     control_window.win_draw()
 
-    viewport_main = Window((term_width_third + 1), 0, 0, term_width, (term_height - 8))
+    viewport_main = Window((term_width_third + 1), 0, 0, term_width, (term_height - 10))
     viewport_main.win_draw()
 
-    statusbar = Window((term_width_third + 1), (term_height - 7), 0, term_width, (term_height - 3))
+    statusbar = Window((term_width_third + 1), (term_height - 9), 0, term_width, (term_height - 3))
     statusbar.win_draw()
 
-    statusbar.win_segment_cont(["Commands |"," :help/:h (Help)"," :quit/:q (Quit)"])
+    statusbar.win_segment_cont(["Commands |"," :help/:h (Help)"," :quit/:q (Quit)", ":1-:12 (Browse calendar)"])
 
     footer_decor()
 
@@ -124,7 +124,7 @@ def calparse(received_input, window):
         for row in input_data:
             window.win_upd_cont(f"{row}╳", True, False, False)
 
-def cls_sub_win():
+def rfr_sub_win():
 
     try:
         control_sub_window_a.win_draw(False)
