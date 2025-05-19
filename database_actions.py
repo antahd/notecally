@@ -195,7 +195,7 @@ def edit_event(selected_month, events_listbox, event_name_entry, event_date_entr
                             month, day = map(int, new_event_date.split("-"))
                             year = current_year
                             if kanta == "binary":
-                                # Split year into millennia and hundreds
+                                
                                 millennia = year // 1000
                                 hundreds = year % 1000
                                 date_tuple = (millennia, hundreds, month, day)
