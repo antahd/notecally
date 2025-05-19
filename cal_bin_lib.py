@@ -106,13 +106,11 @@ def header_scalpel(target_file, offset=0):
             byte = file.read(1)
             if int.from_bytes(byte) == 51:
                 watchdog = 0
-                ML = 0
                 YYY = 0
                 MM = 0
                 DD = 0
-                for _ in range(0,1): # refactor, for loop redundant, adding to millenium is also redundant
-                    value = file.read(1)
-                    ML += int.from_bytes(value)
+                value = file.read(1)
+                ML += int.from_bytes(value)
                 for _ in range(0,4):
                     value = file.read(1)
                     YYY += int.from_bytes(value)
@@ -279,13 +277,11 @@ def note_db_scan(increment_amount=False, offset=0, amount=4000, target_file="nt_
                 cursor_restore = file.tell()
                 value = file.read(1)
                 if int.from_bytes(value) == 51:
-                    ML = 0
                     YYY = 0
                     MM = 0
                     DD = 0
-                    for _ in range(0,1):
-                        value = file.read(1)
-                        ML += int.from_bytes(value)
+                    value = file.read(1)
+                    ML = int.from_bytes(value)
                     for _ in range(0,4):
                         value = file.read(1)
                         YYY += int.from_bytes(value)

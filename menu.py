@@ -15,6 +15,42 @@ statusbar = cal_windowing[2]
 
 binary_sys_init(False,0,False)
 
+def nt_index_refresh():
+    global notelisting
+    notelisting = []
+    dep_on = []
+    dep_of = []
+    try:
+        #global notelisting
+        #notelisting = []
+        notedb = note_db_scan()
+        print(notedb)
+        i=0
+        while i < len(notedb[0]):
+            if notedb[0][i] == "UUID":
+                uuid = notedb[0][i+1]
+
+            if notedb[0][i] == "TITLE":
+                title = notedb[0][i+1]
+
+            if notedb[0][i] == "DEP ON":
+                dep_on.append(notedb[0][i+1])
+
+            if notedb[0][i] == "DEP OF":
+                dep_of.append(notedb[0][i+1])
+
+            if notedb[0][i] == "YEAR":
+                year = notedb[0][i+1]
+
+            if notedb[0][i] == "BRK":
+                notelisting.append((uuid,title,year,dep_on,dep_of))
+                uuid = 0
+            i+=1
+            
+    except:
+        pass
+    print(notelisting)
+
 def menushell_sys_init():
 
     cal_gen_year("2025",2,False) # rework this to a more sane approach where year switching causes year generation
@@ -30,12 +66,10 @@ def menushell_sys_init():
 
     dep_on = []
     dep_of = []
-
+    global notelisting
     notelisting = []
-    note = []
 
     try:
-        global notedb
         notedb = note_db_scan()
         i=0
         while i < len(notedb[0]):
@@ -88,6 +122,7 @@ def cal_shell():
             statusbar.win_clear()
             statusbar.win_segment_cont(["",":1-:12 Cycles calendar month |", "To quit do :q |",":rfr (re-print screen) |",":tp (debug tape) |", "To switch years do :y |",":nr Read note |",":nw Note write |",":clr Clear entire screen"])        
         elif usr == ":y" or usr == ":year":
+            nt_index_refresh()
             foot_cont(f"Last command issued: {usr}")
             screen_print()
             usr = input("Specify Year (XXXX)   $: ")
@@ -101,6 +136,7 @@ def cal_shell():
                 if yr_assumption >= len(generated_years) or yr_assumption < 0:
                     statusbar.win_clear()
                     statusbar.win_segment_cont(["","Year selection out of bounds.", f"Try a year between 2025 and 2032"])
+                    yr_assumption = 0
                 else:
                     calendar_render(generated_years[yr_assumption], 0)
                     statusbar.win_clear()
@@ -127,27 +163,52 @@ def cal_shell():
         elif usr == ":nw":
             writing = True
             error_state = False
-            histbool = False
+            histbool = True
+            undo_rev_count = 5
+            viewport_main.win_clear()
             while writing == True:
                 if error_state == False:
                     statusbar.win_clear()
-                    statusbar.win_segment_cont(["",":X Cancel", ":d Done/Save.",":clr Clear", "| Special", " commands:","/u /d", "/l /r for", "Up, Down,", "Left, Right","| :T","<amount>","<char>","Repeat <char>"])
+                    statusbar.win_segment_cont(["",":X Cancel", ":d Done/Save.",":clr Clear",":ud Undo",":rev Undo history", "count" ,":hist Disable/Enable","Undo history", "| Special edit", " commands:","/u /d", "/l /r for", "Up, Down,", "Left, Right","| :T","<amount>","<char>","Repeat <char>"])
                 screen_print()
                 error_state = False
                 usr = input("Write to note   $: ")
+                if usr == ":h":
+                    error_state = True # this is to avoid printing the same help instructions again, wasting resources
+                    statusbar.win_clear()
+                    statusbar.win_segment_cont(["",":X Cancel", ":d Done/Save.",":clr Clear",":ud Undo",":rev Undo history", "count" ,":hist Disable/Enable","Undo history", "| Special edit", " commands:","/u /d", "/l /r for", "Up, Down,", "Left, Right","| :T","<amount>","<char>","Repeat <char>"])
+               
                 if usr == ":clr":
                     viewport_main.win_clear()
+                if usr == ":rev":
+                    usr_rev = input("Revision history count   $: ")
+                    try:
+                        undo_rev_count = int(usr_rev)
+                        error_state = True
+                        statusbar.win_clear()
+                        statusbar.win_segment_cont(["","Historical","revision","limit","set to",f"{str(undo_rev_count)}"])
+                    except:
+                        error_state = True
+                        statusbar.win_clear()
+                        statusbar.win_segment_cont(["","Invalid user input."])
+
                 elif usr == ":hist":
                     if histbool == False:
                         histbool = True
+                        error_state = True
+                        statusbar.win_clear()
+                        statusbar.win_segment_cont(["","Content","revision","history","enabled.",])
                     else:
                         histbool = False
+                        error_state = True
+                        statusbar.win_clear()
+                        statusbar.win_segment_cont(["","WARNING: ","Content","revision","history","saving","disabled!","Further","edits","will","not","save","to","RAM!",])
 
                 elif usr == ":ud":
                     rev_exist = len(viewport_main.content_history)
                     if rev_exist > 0:
                         try:
-                            undo_val = input(f"How far to undo? {rev_exist} previous entries exist.   $: ")
+                            undo_val = input(f"How far to undo? {str(rev_exist - 1)} previous entries exist.   $: ")
                             undo_val = (rev_exist - 1) - int(undo_val)
                             print(undo_val)
                             print(viewport_main.content_history)
@@ -164,7 +225,7 @@ def cal_shell():
                         statusbar.win_segment_cont(["","Error:", "Content history", "doesn't","exist!"])
                         error_state = True
 
-                elif len(usr) > 0 and usr[0] == ":" and usr[1] == "T":
+                elif len(usr) > 1 and usr[0] == ":" and usr[1] == "T":
                     try:
                         if usr[2] == " ":
                             command = usr.split(" ")
@@ -180,26 +241,28 @@ def cal_shell():
                             output = output.replace("/d","╳")
                             output = output.replace("/r","╲")
                             output = output.replace("/l","╱")
-                            if histbool == True and len(viewport_main.content_history) > 7:
-                                viewport_main.content_history.pop(0)
+                            if histbool == True:
+                                while len(viewport_main.content_history) > undo_rev_count:
+                                    viewport_main.content_history.pop(0)
                             viewport_main.win_upd_cont(output, True, True, histbool)
                     except:
                         statusbar.win_clear()
                         statusbar.win_segment_cont(["","Error!", " usage :T <int> <symbols","to repeat>", "",""])
                         error_state = True
 
-                elif usr != ":X" and usr != ":d" and len(usr) > 0:
+                elif len(usr) > 0 and usr[0] != ":":
                     usr = usr.replace("/u","┼")
                     usr = usr.replace("/d","╳")
                     usr = usr.replace("/r","╲")
                     usr = usr.replace("/l","╱")
 
-                    if histbool == True and len(viewport_main.content_history) > 7:
+                    if histbool == True and len(viewport_main.content_history) > undo_rev_count:
                         viewport_main.content_history.pop(0)
                     viewport_main.win_upd_cont(usr, True, True, histbool)
                 
                 elif usr == ":X":
                     writing = False
+                    viewport_main.win_histclr()
                 elif usr == ":d":
                     date = []
                     statusbar.win_clear()
@@ -221,43 +284,114 @@ def cal_shell():
                         date.append(int(month))
                         day = input("Day   $:")
                         date.append(int(day))
-                        #print(date)
                         uuid = input("ID   $:")
                         name = input("Title/Name   $: ")
                         write_note(tuple(date), int(uuid), name, viewport_main.last_content)
                         writing = False
                         statusbar.win_clear()
                         statusbar.win_segment_cont(["","Note written as:", f"{name}"])
+                        viewport_main.win_histclr()
+                        nt_index_refresh()
                     except:
                         statusbar.win_clear()
                         statusbar.win_segment_cont(["","Error during", "save process.", "Please try", "again and", "follow the", "prompt instructions", "closely."])
                         error_state = True
 
         elif usr == ":nl":
-            pass
+            nt_index_refresh()
+            viewport_main.win_clear()
+            viewport_size = viewport_main.win_ret_relat_pos()
+            columns = (viewport_size[1][1] - viewport_size[0][1]) - 2
+            #print(viewport_size)
+            #print(columns)
+            offset = 0
+            if offset+columns < len(notelisting):
+                while offset+columns <= len(notelisting):
+                    viewport_main.win_clear()
+                    viewport_main.win_upd_cont("   ID   |   Title   |   Date ╳")
+                    
+                    for i in range(0, columns):
+                        disp_id = notelisting[i+offset][0]
+                        disp_title = notelisting[i+offset][1]
+                        ML = notelisting[i+offset][2][0]
+                        YYY = notelisting[i+offset][2][1]
+                        MN = notelisting[i+offset][2][2]
+                        DT = notelisting[i+offset][2][3]
+                        year = ((ML*1000)+YYY)
+                        disp_date = str(year) + "." + str(MN) + "." + str(DT)
+                        viewport_main.win_upd_cont(f"   {disp_id} - {disp_title} - {disp_date} ╳")
 
+                    screen_print()
+                    usr = input(f"Browse 0-{str(len(notelisting)-columns)} / Current: {str(offset)}   $: ")
+                    
+                    try:
+                        int(usr)
+                    except:
+                        pass
+                    else:
+                        if int(usr) <= (len(notelisting) - columns):
+                            offset = int(usr)
+                        else:
+                            offset = len(notelisting) - columns
+
+                    if usr == "":
+                        offset += 1
+                    elif usr == "q" or usr == "Q" or usr == ":q":
+                        break
+            else:
+                viewport_main.win_upd_cont("   ID   |   Title   |   Date ╳")
+                for item in notelisting:
+                    disp_id = item[0]
+                    disp_title = item[1]
+                    ML = item[2][0]
+                    YYY = item[2][1]
+                    MN = item[2][2]
+                    DT = item[2][3]
+                    year = ((ML*1000)+YYY)
+                    disp_date = str(year) + "." + str(MN) + "." + str(DT)
+                    viewport_main.win_upd_cont(f"   {disp_id} - {disp_title} - {disp_date} ╳")
 
         elif usr == ":tp":
             screen_dbg_tape()
         elif usr == ":rfr":
             statusbar.win_clear()
             statusbar.win_segment_cont(["Commands |"," :help/:h (Help)"," :quit/:q (Quit)", ":1-:12 (Browse calendar)"])
+            foot_cont("")
+            suppress_last = True
             ui_rfr()
         elif usr == ":q" or usr == ":quit":
             break
-        elif usr[0] == ":":
+        elif len(usr) > 1 and usr[0] == ":":
+
             try:
-                int(usr[1])
-            except:
-                statusbar.win_clear()
-                statusbar.win_segment_cont(["","Unknown input.", "Try typing :h or :help"])
-            else:
+                usr_int = int(usr.strip(":"))
+                nt_index_refresh()
+                viewport_main.win_clear()
                 control_window.win_clear()
+                viewport_size = viewport_main.win_ret_relat_pos()
+                columns = (viewport_size[1][1] - viewport_size[0][1]) - 2
+                viewport_main.win_upd_cont("   ID   |   Title   |   Date ╳")
+                for item in notelisting:
+                    disp_id = item[0]
+                    disp_title = item[1]
+                    ML = item[2][0]
+                    YYY = item[2][1]
+                    MN = item[2][2]
+                    DT = item[2][3]
+                    year = ((ML*1000)+YYY)
+                    disp_date = str(year) + "." + str(MN) + "." + str(DT)
+                    if year == yr_assumption + 2025 and usr_int == MN:
+                        viewport_main.win_upd_cont(f"   {disp_id} - {disp_title} - {disp_date} ╳")
+
                 if len(usr) < 3:
                     sanitized_usr = usr[1]
                 else:
                     sanitized_usr = 10 + int(usr[2])
                 calendar_render(generated_years[yr_assumption], (int(sanitized_usr)-1))
+            except:
+                statusbar.win_clear()
+                statusbar.win_segment_cont(["","Unknown input.", "Try typing :h or :help"])
+            
         else:
             statusbar.win_clear()
             statusbar.win_segment_cont(["","Unknown input.", "Try typing :h or :help"])

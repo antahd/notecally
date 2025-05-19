@@ -261,6 +261,9 @@ class Window:
             iy += 1
         self.last_content = ""
 
+    def win_histclr(self):
+        self.content_history = []
+
 # ─│┌┐└┘├┤┬┴┼█░▒╱╲╳
 
 # ╭╮╯╰
