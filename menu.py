@@ -4,19 +4,42 @@ import os # make optional, add a configuration system to generate a first time c
 from overlaysystem import screen_dbg_tape, screen_print, Window, screen_clear
 from binhandler import binary_sys_init
 from cal_ovl_lib import footer_decor, foot_cont, cal_ovl_init, calendar_render, cal_gen_year, rfr_sub_win
-sqlite_enabled = True
+
+usr_sqlite = input("Enable Sqlite? (y/N)   $: ")
+
+if usr_sqlite.upper() == "Y" or usr_sqlite.upper() == "YES":
+    sqlite_enabled = True
+else:
+    sqlite_enabled = False
 
 if sqlite_enabled == False:
     from cal_bin_lib import note_db_scan, read_note, write_note, file_len
 else:
-    from sqlite_gluecode import compgl_nt_index_refresh, compgl_write_note as write_note, compgl_read_note as read_note
+    #from database_actions import initialize_database
+    from sqlite_gluecode import compgl_nt_index_refresh, initialize_sqlite, compgl_write_note as write_note, compgl_read_note as read_note
+    initialize_sqlite()
+
+def current_system_date():
+    from datetime import datetime
+    year = datetime.today().year
+    month = datetime.today().month
+    day = datetime.today().day
+    current_date = f" Current date:  {year}-{month}-{day}"
+    return current_date
+
+try:
+    current_year = current_system_date()
+except:
+    current_year = False
+
 
 term_size = os.get_terminal_size()
 
-cal_windowing = cal_ovl_init(term_size, False) # Warning set to false
+cal_windowing = cal_ovl_init(term_size, current_year, False) # Warning set to false
 control_window = cal_windowing[0]
 viewport_main = cal_windowing[1]
 statusbar = cal_windowing[2]
+datebar = cal_windowing[3]
 
 binary_sys_init(False,0,False)
 
@@ -26,7 +49,7 @@ def nt_index_refresh():
     dep_of = []
     try:
         notedb = note_db_scan()
-        print(notedb)
+        #print(notedb)
         i=0
         while i < len(notedb[0]):
             if notedb[0][i] == "UUID":
@@ -75,18 +98,24 @@ def menushell_sys_init():
         notelisting = nt_index_refresh()
     else: # try except here with a reference implementation of database initialization from Joonas' code incase database is nonexistant
         notelisting = compgl_nt_index_refresh()
-    print(notelisting)
+    #print(notelisting)
 
 menushell_sys_init()
 
 def cal_shell():
-    screen_print()
     yr_assumption = 0
+    if datebar != False:
+        datebar.win_raw_cont(current_year,True,False)
+        datebar.win_draw()
+    screen_print()
     def ui_rfr():
     
         control_window.win_draw()
         viewport_main.win_draw()
         statusbar.win_draw()
+        if datebar != False:
+            datebar.win_raw_cont(current_year,True,False)
+            datebar.win_draw()
 
         foot_cont(" ",1)
         footer_decor()
@@ -149,8 +178,8 @@ def cal_shell():
             error_state = False
             histbool = True
             undo_rev_count = 5
-            usr_clr = input("Clear viewport? y/N   $: ")
-            if usr_clr.upper() == "Y" or usr_clr.upper() == "YES":
+            usr_clr = input("Clear viewport? Y/n   $: ")
+            if usr_clr.upper() != "N" and usr_clr.upper() != "NO":
                 viewport_main.win_clear()
             while writing == True:
                 if error_state == False:
@@ -196,7 +225,7 @@ def cal_shell():
                         try:
                             undo_val = input(f"How far to undo? {str(rev_exist - 1)} previous entries exist.   $: ")
                             undo_val = (rev_exist - 1) - int(undo_val)
-                            print(undo_val)
+                            #print(undo_val)
                             print(viewport_main.content_history)
                             print(viewport_main.content_history[undo_val])
                             sel_revision = viewport_main.content_history[undo_val]
@@ -215,11 +244,11 @@ def cal_shell():
                     try:
                         if usr[2] == " ":
                             command = usr.split(" ")
-                            print(command)
+                            #print(command)
                             factor = command[1]
-                            print(factor)
+                            #print(factor)
                             variable = command[2]
-                            print(variable)
+                            #print(variable)
                             output = ""
                             for _ in range(0, int(factor)):
                                 output += variable
@@ -251,6 +280,7 @@ def cal_shell():
                     viewport_main.win_histclr()
                     statusbar.win_clear()
                     statusbar.win_segment_cont(["Commands |"," :help/:h (Help)"," :quit/:q (Quit)", ":1-:12 (Browse calendar)"])
+                    suppress_last = True
                 elif usr == ":d":
                     date = []
                     statusbar.win_clear()
@@ -296,6 +326,7 @@ def cal_shell():
                 notelisting = nt_index_refresh()
             else:
                 notelisting = compgl_nt_index_refresh()
+            #print(notelisting)
             viewport_main.win_clear()
             viewport_size = viewport_main.win_ret_relat_pos()
             columns = (viewport_size[1][1] - viewport_size[0][1]) - 2

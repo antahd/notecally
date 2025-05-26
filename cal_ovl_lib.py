@@ -3,7 +3,7 @@
 from overlaysystem import Window, screen_write, overlay_sys_init
 from callogic import construct_year
 
-def cal_ovl_init(term_size, warning=True):
+def cal_ovl_init(term_size, current_year, warning=True):
     if warning == True:
         print("WARNING!!!: This is an internal library to the NoteCally project!!!")
         print("It is not recommended to be used anywhere besides with the menu system!")
@@ -34,9 +34,16 @@ def cal_ovl_init(term_size, warning=True):
 
     control_window = Window(0, 0, 0, term_width_third, (term_height - 3))
     control_window.win_draw()
+    if current_year == False:
+        viewport_main = Window((term_width_third + 1), 0, 0, term_width, (term_height - 10))
+        viewport_main.win_draw()
+        datebar = False
+    else:
+        datebar = Window((term_width_third + 1), 0, 0, term_width, 2)
+        datebar.win_draw()
 
-    viewport_main = Window((term_width_third + 1), 0, 0, term_width, (term_height - 10))
-    viewport_main.win_draw()
+        viewport_main = Window((term_width_third + 1), 3, 0, term_width, (term_height - 10))
+        viewport_main.win_draw()
 
     statusbar = Window((term_width_third + 1), (term_height - 9), 0, term_width, (term_height - 3))
     statusbar.win_draw()
@@ -62,7 +69,7 @@ def cal_ovl_init(term_size, warning=True):
         else:
             control_sub_window_a = Window(0,0,0,27,(term_height - 3))
             
-    return (control_window,viewport_main,statusbar)
+    return (control_window,viewport_main,statusbar,datebar)
             
 
 def cal_gen_year(start_day_index, leap=False,debug=False):

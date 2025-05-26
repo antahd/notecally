@@ -1,5 +1,21 @@
 import sqlite3
 
+def initialize_sqlite():
+    db_path = "events.db"
+        
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            event_name TEXT NOT NULL,
+            event_description TEXT
+            )
+    """)
+    conn.commit()
+    conn.close()
+
 def fetch_month_events(month_index,year): # 0-12, this function might be unnecessary considering the rest of the translation done in this script
     conn = sqlite3.connect("events.db")
     cursor = conn.cursor()
