@@ -65,7 +65,7 @@ def cal_ovl_init(term_size, warning=True):
     return (control_window,viewport_main,statusbar)
             
 
-def cal_gen_year(year, start_day_index, leap=False,debug=False):
+def cal_gen_year(start_day_index, leap=False,debug=False):
     year = construct_year(start_day_index,leap,debug)
     generated_years.append(year)
     return generated_years

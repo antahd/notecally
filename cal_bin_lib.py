@@ -109,8 +109,9 @@ def header_scalpel(target_file, offset=0):
                 YYY = 0
                 MM = 0
                 DD = 0
+                ML = 0
                 value = file.read(1)
-                ML += int.from_bytes(value)
+                ML = int.from_bytes(value)
                 for _ in range(0,4):
                     value = file.read(1)
                     YYY += int.from_bytes(value)
@@ -280,6 +281,7 @@ def note_db_scan(increment_amount=False, offset=0, amount=4000, target_file="nt_
                     YYY = 0
                     MM = 0
                     DD = 0
+                    ML = 0
                     value = file.read(1)
                     ML = int.from_bytes(value)
                     for _ in range(0,4):

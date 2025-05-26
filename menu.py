@@ -4,7 +4,12 @@ import os # make optional, add a configuration system to generate a first time c
 from overlaysystem import screen_dbg_tape, screen_print, Window, screen_clear
 from binhandler import binary_sys_init
 from cal_ovl_lib import footer_decor, foot_cont, cal_ovl_init, calendar_render, cal_gen_year, rfr_sub_win
-from cal_bin_lib import note_db_scan, read_note, write_note, file_len
+sqlite_enabled = True
+
+if sqlite_enabled == False:
+    from cal_bin_lib import note_db_scan, read_note, write_note, file_len
+else:
+    from sqlite_gluecode import compgl_nt_index_refresh, compgl_write_note as write_note, compgl_read_note as read_note
 
 term_size = os.get_terminal_size()
 
@@ -16,13 +21,10 @@ statusbar = cal_windowing[2]
 binary_sys_init(False,0,False)
 
 def nt_index_refresh():
-    global notelisting
     notelisting = []
     dep_on = []
     dep_of = []
     try:
-        #global notelisting
-        #notelisting = []
         notedb = note_db_scan()
         print(notedb)
         i=0
@@ -48,54 +50,31 @@ def nt_index_refresh():
             i+=1
             
     except:
-        pass
-    print(notelisting)
+        file = open("nt_index.dat", 'wb')
+        file.close()
+    return notelisting
 
 def menushell_sys_init():
 
-    cal_gen_year("2025",2,False) # rework this to a more sane approach where year switching causes year generation
-    cal_gen_year("2026",3,False)
-    cal_gen_year("2027",4,False)
-    cal_gen_year("2028",5,True)
-    cal_gen_year("2029",0,False)
-    cal_gen_year("2030",1,False)
-    cal_gen_year("2031",2,False)
+    cal_gen_year(2,False) # 2025 # rework this to a more sane approach where year switching causes year generation
+    cal_gen_year(3,False) # 2026
+    cal_gen_year(4,False) # 2027
+    cal_gen_year(5,True) # 2028
+    cal_gen_year(0,False) # 2029
+    cal_gen_year(1,False) # 2030
+    cal_gen_year(2,False) # 2031
 
     global generated_years
-    generated_years = cal_gen_year("2032",3,True)
+    generated_years = cal_gen_year(3,True) # 2032
 
     dep_on = []
     dep_of = []
     global notelisting
     notelisting = []
-
-    try:
-        notedb = note_db_scan()
-        i=0
-        while i < len(notedb[0]):
-            if notedb[0][i] == "UUID":
-                uuid = notedb[0][i+1]
-
-            if notedb[0][i] == "TITLE":
-                title = notedb[0][i+1]
-
-            if notedb[0][i] == "DEP ON":
-                dep_on.append(notedb[0][i+1])
-
-            if notedb[0][i] == "DEP OF":
-                dep_of.append(notedb[0][i+1])
-
-            if notedb[0][i] == "YEAR":
-                year = notedb[0][i+1]
-
-            if notedb[0][i] == "BRK":
-                notelisting.append((uuid,title,year,dep_on,dep_of))
-                uuid = 0
-            i+=1
-    except:
-        file = open("nt_index.dat", 'wb')
-        file.close()
-        
+    if sqlite_enabled == False:
+        notelisting = nt_index_refresh()
+    else: # try except here with a reference implementation of database initialization from Joonas' code incase database is nonexistant
+        notelisting = compgl_nt_index_refresh()
     print(notelisting)
 
 menushell_sys_init()
@@ -122,7 +101,10 @@ def cal_shell():
             statusbar.win_clear()
             statusbar.win_segment_cont(["",":1-:12 Cycles calendar month |", "To quit do :q |",":rfr (re-print screen) |",":tp (debug tape) |", "To switch years do :y |",":nr Read note |",":nw Note write |",":clr Clear entire screen"])        
         elif usr == ":y" or usr == ":year":
-            nt_index_refresh()
+            if sqlite_enabled == False:
+                notelisting = nt_index_refresh()
+            else:
+                notelisting = compgl_nt_index_refresh()
             foot_cont(f"Last command issued: {usr}")
             screen_print()
             usr = input("Specify Year (XXXX)   $: ")
@@ -145,6 +127,8 @@ def cal_shell():
         elif usr == ":nr":
             screen_print()
             ntread = input("Note to read   $: ")
+            if sqlite_enabled == False:
+                ntread = ntread.replace(" ","_") + ".bin"
             try:
                 note = read_note(ntread, True)
                 viewport_main.win_clear()
@@ -165,7 +149,9 @@ def cal_shell():
             error_state = False
             histbool = True
             undo_rev_count = 5
-            viewport_main.win_clear()
+            usr_clr = input("Clear viewport? y/N   $: ")
+            if usr_clr.upper() == "Y" or usr_clr.upper() == "YES":
+                viewport_main.win_clear()
             while writing == True:
                 if error_state == False:
                     statusbar.win_clear()
@@ -263,6 +249,8 @@ def cal_shell():
                 elif usr == ":X":
                     writing = False
                     viewport_main.win_histclr()
+                    statusbar.win_clear()
+                    statusbar.win_segment_cont(["Commands |"," :help/:h (Help)"," :quit/:q (Quit)", ":1-:12 (Browse calendar)"])
                 elif usr == ":d":
                     date = []
                     statusbar.win_clear()
@@ -284,21 +272,30 @@ def cal_shell():
                         date.append(int(month))
                         day = input("Day   $:")
                         date.append(int(day))
-                        uuid = input("ID   $:")
+                        if sqlite_enabled == False:
+                            uuid = input("ID   $:")
+                        else:
+                            uuid = 0
                         name = input("Title/Name   $: ")
                         write_note(tuple(date), int(uuid), name, viewport_main.last_content)
                         writing = False
                         statusbar.win_clear()
                         statusbar.win_segment_cont(["","Note written as:", f"{name}"])
                         viewport_main.win_histclr()
-                        nt_index_refresh()
+                        if sqlite_enabled == False:
+                            notelisting = nt_index_refresh()
+                        else:
+                            notelisting = compgl_nt_index_refresh()
                     except:
                         statusbar.win_clear()
                         statusbar.win_segment_cont(["","Error during", "save process.", "Please try", "again and", "follow the", "prompt instructions", "closely."])
                         error_state = True
 
         elif usr == ":nl":
-            nt_index_refresh()
+            if sqlite_enabled == False:
+                notelisting = nt_index_refresh()
+            else:
+                notelisting = compgl_nt_index_refresh()
             viewport_main.win_clear()
             viewport_size = viewport_main.win_ret_relat_pos()
             columns = (viewport_size[1][1] - viewport_size[0][1]) - 2
@@ -365,7 +362,10 @@ def cal_shell():
 
             try:
                 usr_int = int(usr.strip(":"))
-                nt_index_refresh()
+                if sqlite_enabled == False:
+                    notelisting = nt_index_refresh()
+                else:
+                    notelisting = compgl_nt_index_refresh()
                 viewport_main.win_clear()
                 control_window.win_clear()
                 viewport_size = viewport_main.win_ret_relat_pos()
