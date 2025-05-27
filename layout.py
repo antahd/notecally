@@ -10,6 +10,8 @@ from database_actions import (
     add_event,
     delete_event,
     edit_event,
+    fetch_events_for_month,
+    kanta
 )
 
 # Kuukaudet suomeksi
@@ -21,25 +23,10 @@ nykyinen_kuukausi = kuukaudet_suomeksi[datetime.now().month - 1]
 
 selected_month = None  # Tarvitaan
 
-current_year = datetime.now().year
+current_year = [datetime.now().year]
 #Fontit
 TITLE_FONT_SIZE = 16
 TEXT_FONT_SIZE = 14
-
-# Etsi tiedot
-def fetch_events_for_month(month_index):
-    conn = sqlite3.connect("events.db")
-    cursor = conn.cursor()
-    month_str = f"2025-{month_index:02d}-%"
-    cursor.execute("""
-        SELECT date, event_name, event_description
-        FROM events
-        WHERE date LIKE ?
-    """, (month_str,))
-    events = cursor.fetchall()
-    conn.close()
-    return events
-
 
 def create_layout():
     # Luo pääikkuna
@@ -87,6 +74,10 @@ def create_layout():
         month_buttons.append((button, month_index, month))
         return button
 
+    for index, month in enumerate(kuukaudet_suomeksi, start=1):
+        button = create_month_button(month, index)
+        button.pack(pady=10, fill="x")
+
     def toggle_month_view(month_index, month_name, month_button):
         global selected_month
         selected_month = month_name
@@ -99,10 +90,10 @@ def create_layout():
         dates_frame.is_calendar = True
         dates_frame.pack(fill="x", pady=5, after=month_button)
 
-        year = current_year
+        year = current_year[0]
         _, num_days = monthrange(year, month_index)
 
-        events = fetch_events_for_month(month_index)
+        events = fetch_events_for_month(month_index, year)
         event_days = {int(event[0].split("-")[2]) for event in events}
 
         for day in range(1, num_days + 1):
@@ -124,10 +115,10 @@ def create_layout():
 
     def highlight_events(month_index, selected_day):
         events_listbox.delete(0, tk.END)
-        year = current_year
+        year = current_year[0]
         selected_date = f"{year}-{month_index:02d}-{selected_day:02d}"
 
-        events = fetch_events_for_month(month_index)
+        events = fetch_events_for_month(month_index, year)
         for event in events:
             event_date, event_name, event_description = event
             if event_date == selected_date:
@@ -136,22 +127,75 @@ def create_layout():
             else:
                 events_listbox.insert(tk.END, f"{event_date}: {event_name} - {event_description}")
 
-    for index, month in enumerate(kuukaudet_suomeksi, start=1):
-        button = create_month_button(month, index)
-        button.pack(pady=10, fill="x")
-
     def update_events(selected_month, events_listbox, kuukaudet_suomeksi):
         events_label.config(text=f"Tapahtumat kuukaudelle {selected_month}")
         events_listbox.delete(0, tk.END)
 
         month_index = kuukaudet_suomeksi.index(selected_month) + 1
-        events = fetch_events_for_month(month_index)
+        year = current_year[0]
+        events = fetch_events_for_month(month_index, year)
         for event in events:
-            event_date, event_name, event_description = event
-            events_listbox.insert(tk.END, f"{event_date}: {event_name} - {event_description}")
+            events_listbox.insert(tk.END, f"{event[0]}: {event[1]} - {event[2]}")
 
     right_frame = tk.Frame(root, bg="#2a7f8e", width=600, height=400)  
     right_frame.pack(side="top", fill="both", expand=True)
+
+    
+    current_date_str = datetime.now().strftime("%d.%m.%Y")
+    date_label = tk.Label(
+        right_frame,
+        text=f"Tänään: {current_date_str}",
+        bg="#2a7f8e",
+        fg="#ffffff",
+        font=("Arial", 12, "bold"),
+        anchor="e"
+    )
+    date_label.pack(side="top", anchor="ne", padx=20, pady=5)
+
+   
+    def change_year_popup():
+        popup = tk.Toplevel()
+        popup.title("Vaihda vuosi")
+        popup.geometry("300x150")
+        popup.configure(bg="#A7D8DE")
+
+        tk.Label(popup, text="Anna uusi vuosi:", bg="#A7D8DE", font=("Arial", TEXT_FONT_SIZE)).pack(pady=10)
+        year_entry = tk.Entry(popup, font=("Arial", TEXT_FONT_SIZE))
+        year_entry.pack(pady=5)
+
+        def set_year():
+            new_year = year_entry.get().strip()
+            if new_year.isdigit() and 1900 <= int(new_year) <= 2100:
+                current_year[0] = int(new_year)
+                current_year_label.config(text=f"Vuosi: {current_year[0]}")  # Update year label
+                popup.destroy()
+                # Päivitä kuukausi
+                if selected_month:
+                    update_events(selected_month, events_listbox, kuukaudet_suomeksi)
+            else:
+                tk.messagebox.showerror("Virhe", "Syötä kelvollinen vuosi (1900-2100).")
+
+        tk.Button(popup, text="Aseta vuosi", command=set_year, bg="#E0FFFF", font=("Arial", TEXT_FONT_SIZE)).pack(pady=10)
+
+    change_year_button = tk.Button(
+        right_frame,
+        text="Vaihda vuosi",
+        bg="#E0FFFF",
+        fg="#000000",
+        font=("Arial", TEXT_FONT_SIZE),
+        command=change_year_popup
+    )
+    change_year_button.pack(pady=(0, 10), anchor="ne", padx=20)
+
+    
+    current_year_label = tk.Label(
+        right_frame,
+        text=f"Vuosi: {current_year[0]}",
+        bg="#2a7f8e",
+        fg="#ffffff",
+        font=("Arial", 14, "bold")
+    )
+    current_year_label.pack(pady=(0, 10), anchor="ne", padx=20)
 
     background_image_path = os.path.join(os.getcwd(), "background.png")
     if not os.path.exists(background_image_path):
@@ -188,11 +232,11 @@ def create_layout():
             selected_month,
             events_listbox,
             kuukaudet_suomeksi,
-            current_year,
+            current_year[0],
             update_events
         )
     )
-    add_button.grid(row=1, column=2, rowspan=2, padx=10, pady=5, sticky="ns")
+    add_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
     edit_button = tk.Button(
         bottom_frame,
@@ -203,15 +247,15 @@ def create_layout():
         command=lambda: edit_event(
             selected_month,
             events_listbox,
-            None,  # No longer needed
+            None,
             None,
             None,
             kuukaudet_suomeksi,
-            current_year,
+            current_year[0],
             update_events
         )
     )
-    edit_button.grid(row=4, column=1, padx=10, pady=5, sticky="ns")
+    edit_button.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
 
     delete_button = tk.Button(
         bottom_frame,
@@ -226,7 +270,12 @@ def create_layout():
             update_events
         )
     )
-    delete_button.grid(row=3, column=2, padx=10, pady=5, sticky="ns")
+    delete_button.grid(row=0, column=2, padx=10, pady=10, sticky="ew")
+
+    
+    bottom_frame.grid_columnconfigure(0, weight=1)
+    bottom_frame.grid_columnconfigure(1, weight=1)
+    bottom_frame.grid_columnconfigure(2, weight=1)
 
     # Valitse nykyinen kuukausi tärkeä
 

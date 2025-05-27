@@ -39,7 +39,7 @@ def bin_write(target_file, file_content, mode="ab"):
         file.write(bytes(file_content))
         file.close()
 
-def bin_read(target_file, debug=False):
+def bin_read(target_file, debug=False): #
     character_index_data = []
     with open(target_file, 'rb') as file:
         while True:
