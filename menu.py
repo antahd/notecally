@@ -1,16 +1,59 @@
 #! /bin/python3
 
-import os # make optional, add a configuration system to generate a first time config potentially with user interaction
+# make optional, add a configuration system to generate a first time config potentially with user interaction
 from overlaysystem import screen_dbg_tape, screen_print, Window, screen_clear
 from binhandler import binary_sys_init
 from cal_ovl_lib import footer_decor, foot_cont, cal_ovl_init, calendar_render, cal_gen_year, rfr_sub_win
 
-usr_sqlite = input("Enable Sqlite? (y/N)   $: ")
+def conf_parse():
+    with open("nt_cally.cfg", 'rt') as file:
+        config_str = file.read()
+        file.close()
+    config_internal = config_str.split("\n")
+    print(config_internal)
+    for item in config_internal:
+        var = item.split("=")
+        if var[0] == "sqlite_enabled":
+            global sqlite_enabled
+            global sqlite_pass
+            print(var[1])
+            if var[1] == "yes":
+                sqlite_pass = True
+                sqlite_enabled = True
+            elif var[1] == "ask":
+                pass
+            else:
+                sqlite_pass = True
+                sqlite_enabled = False
+        elif var[0] == "height":
+            global term_height
+            term_height = int(var[1])
+        elif var[0] == "width":
+            global term_width
+            term_width = int(var[1])
 
-if usr_sqlite.upper() == "Y" or usr_sqlite.upper() == "YES":
-    sqlite_enabled = True
+sqlite_pass = False
+
+try:
+    conf_parse()
+except:
+    configuration_succesful = False
 else:
-    sqlite_enabled = False
+    configuration_succesful = True
+
+if sqlite_pass == False:
+    usr_sqlite = input("Enable Sqlite? (y/N)   $: ")
+
+
+if configuration_succesful == False:
+    import os
+    term_width = os.get_terminal_size().columns
+    term_height = os.get_terminal_size().lines
+    if usr_sqlite.upper() == "Y" or usr_sqlite.upper() == "YES":
+        sqlite_enabled = True
+    else:
+        sqlite_enabled = False
+
 
 if sqlite_enabled == False:
     from cal_bin_lib import note_db_scan, read_note, write_note, file_len
@@ -18,6 +61,11 @@ else:
     #from database_actions import initialize_database
     from sqlite_gluecode import compgl_nt_index_refresh, initialize_sqlite, compgl_write_note as write_note, compgl_read_note as read_note
     initialize_sqlite()
+
+
+
+
+term_size = (term_width, term_height)
 
 def current_system_date():
     from datetime import datetime
@@ -32,9 +80,6 @@ try:
 except:
     current_year = False
 
-
-term_size = os.get_terminal_size()
-
 cal_windowing = cal_ovl_init(term_size, current_year, False) # Warning set to false
 control_window = cal_windowing[0]
 viewport_main = cal_windowing[1]
@@ -42,6 +87,8 @@ statusbar = cal_windowing[2]
 datebar = cal_windowing[3]
 
 binary_sys_init(False,0,False)
+
+
 
 def nt_index_refresh():
     notelisting = []

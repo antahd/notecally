@@ -16,8 +16,8 @@ def cal_ovl_init(term_size, current_year, warning=True):
     global control_sub_window_b
     global control_sub_window_c
 
-    term_width = (term_size.columns - 1)    # Adjustments necessary to avoid writing beyond screen buffer
-    term_height = (term_size.lines - 2)     #
+    term_width = (term_size[0] - 1)    # Adjustments necessary to avoid writing beyond screen buffer
+    term_height = (term_size[1] - 2)     #
 
     term_width_third = (int(term_width / 3))
 
@@ -30,7 +30,7 @@ def cal_ovl_init(term_size, current_year, warning=True):
     else:
         term_width_third = 27
 
-    overlay_sys_init(term_size.columns, term_size.lines)
+    overlay_sys_init(term_size[0], term_size[1])
 
     control_window = Window(0, 0, 0, term_width_third, (term_height - 3))
     control_window.win_draw()
