@@ -10,13 +10,11 @@ def conf_parse():
         config_str = file.read()
         file.close()
     config_internal = config_str.split("\n")
-    print(config_internal)
     for item in config_internal:
         var = item.split("=")
         if var[0] == "sqlite_enabled":
             global sqlite_enabled
             global sqlite_pass
-            print(var[1])
             if var[1] == "yes":
                 sqlite_pass = True
                 sqlite_enabled = True
@@ -31,6 +29,8 @@ def conf_parse():
         elif var[0] == "width":
             global term_width
             term_width = int(var[1])
+    int(term_height)
+    int(term_width)
 
 sqlite_pass = False
 
@@ -43,18 +43,16 @@ else:
 
 if sqlite_pass == False:
     usr_sqlite = input("Enable Sqlite? (y/N)   $: ")
-
-
-if configuration_succesful == False:
-    import os
-    term_width = os.get_terminal_size().columns
-    term_height = os.get_terminal_size().lines
     if usr_sqlite.upper() == "Y" or usr_sqlite.upper() == "YES":
         sqlite_enabled = True
     else:
         sqlite_enabled = False
 
-
+if configuration_succesful == False:
+    import os
+    term_width = os.get_terminal_size().columns
+    term_height = os.get_terminal_size().lines
+    
 if sqlite_enabled == False:
     from cal_bin_lib import note_db_scan, read_note, write_note, file_len
 else:
@@ -214,6 +212,125 @@ def cal_shell():
             except:
                 statusbar.win_clear()
                 statusbar.win_segment_cont(["","Error:", "Invalid note name or other exception"])
+
+        elif usr == ":ne":
+            screen_print()
+            ntedit = input("Note to edit   $: ")
+            if sqlite_enabled == False:
+                ntedit = ntedit.replace(" ","_") + ".bin"
+            try:
+                note = read_note(ntedit, True)
+                transient_cont = note[1]
+                transient_cont = transient_cont.replace("╳"," ╳ ")
+                transient_cont = transient_cont.replace("┼"," ┼ ")
+                transient_cont = transient_cont.split(" ")
+                editable_cont = ""
+                i=0
+                for item in transient_cont:
+                    editable_cont += "".join(f"<{str(i)}[{item}] ")
+                    i+=1
+                viewport_main.win_clear()
+                viewport_main.win_raw_cont(editable_cont)
+                statusbar.win_clear()
+                statusbar.win_raw_cont(f"ID: {note[2]}   Title: {note[5]}╳Date: {str(note[0][0])}.{str(note[0][1])}.{str(note[0][2])}")
+
+            except:
+                statusbar.win_clear()
+                statusbar.win_segment_cont(["","Error:", "Invalid note name or other exception"])
+            else:
+                editing = True
+                editor_position = 0
+                silent = False
+                while editing == True:
+                    screen_print()
+                    usr_edit = input("Editor   $: ")
+                    try:
+                        edit_index = int(usr_edit)
+                        displ_sanitized = transient_cont[edit_index].replace("╳","/d")
+                        displ_sanitized = displ_sanitized.replace("┼","/u")
+                        displ_sanitized = displ_sanitized.replace("╲","/r")
+                        displ_sanitized = displ_sanitized.replace("╱","/l")
+                        prompt = f"Edit: {displ_sanitized}   $: "
+                    except:
+                        pass
+                    else:
+                        usr = input(prompt)
+                        usr_inter = usr.replace("/d","╳")
+                        usr_inter = usr_inter.replace("/u","┼")
+                        usr_inter = usr_inter.replace("/r","╲")
+                        usr_inter = usr_inter.replace("/l","╱")
+                        transient_cont[edit_index] = usr_inter
+                    if usr_edit == ":sav":
+                        text_save = ""
+                        for item in transient_cont:
+                            if item == "":
+                                pass
+                            elif item != "╳" and item != "┼" and item != "╲" and item != "╱" and item != "":
+                                text_save += item + " "
+                            else:
+                                text_save += item
+                        #text_save = "".join(transient_cont)
+                        date = []
+                        date.append(note[6][0])
+                        YYY = note[6][1]
+                        while YYY > 255:
+                            date.append(255)
+                            YYY -= 255
+                        date.append(YYY)
+                        while len(date) < 5:
+                            date.append(0)
+                        date.append(note[6][2])
+                        date.append(note[6][3])
+                        try:
+                            write_note(tuple(date), note[2], note[5], text_save, False)
+                        except:
+                            pass
+                        else:
+                            editing = False
+                            
+                    elif usr_edit == ":ins":
+                        usr_insert = input("Insert to (num)   $: ")
+                        try:
+                            print(usr_insert)
+                            transient_cont.insert(int(usr_insert),"@@@")
+                        except:
+                            print("insert failure")
+                    
+                    elif usr_edit == ":sil":
+                        if silent == False:
+                            silent = True
+                        else:
+                            silent = False
+
+                    elif usr_edit == ":bw":
+                        screen_print()
+                        brw_count = len(transient_cont)-1
+                        brw_prompt = f"Browse 0-{str(brw_count)}   $: "
+                        usr_browse = input(brw_prompt)
+                        try:
+                            int(usr_browse)
+                        except:
+                            pass
+                        else:
+                            editor_position = int(usr_browse)
+
+                    elif usr_edit == ":X" or usr_edit == ":q":
+                        editing = False
+
+                    editable_cont = ""
+                    i=editor_position
+                    #for item in transient_cont:
+                    #    editable_cont += "".join(f"<{str(i)}[{item}]> ")
+                    #    i+=1
+                    while i < len(transient_cont):
+                        if silent == False:
+                            editable_cont += "".join(f"<{str(i)}[{transient_cont[i]}] ")
+                        else:
+                            editable_cont += "".join(f"{transient_cont[i]} ")
+                        i+=1
+                    viewport_main.win_clear()
+                    viewport_main.win_raw_cont(editable_cont)
+
         elif usr == ":clr":
             statusbar.win_clear()
             statusbar.win_segment_cont(["Commands |"," :help/:h (Help)"," :quit/:q (Quit)", ":1-:12 (Browse calendar)"])
@@ -231,14 +348,14 @@ def cal_shell():
             while writing == True:
                 if error_state == False:
                     statusbar.win_clear()
-                    statusbar.win_segment_cont(["",":X Cancel", ":d Done/Save.",":clr Clear",":ud Undo",":rev Undo history", "count" ,":hist Disable/Enable","Undo history", "| Special edit", " commands:","/u /d", "/l /r for", "Up, Down,", "Left, Right","| :T","<amount>","<char>","Repeat <char>"])
+                    statusbar.win_segment_cont(["",":X Cancel", ":sav Done/Save.",":clr Clear",":ud Undo",":rev Undo history", "count" ,":hist Disable/Enable","Undo history", "| Special edit", " commands:","/u /d", "/l /r for", "Up, Down,", "Left, Right","| :T","<amount>","<char>","Repeat <char>"])
                 screen_print()
                 error_state = False
                 usr = input("Write to note   $: ")
                 if usr == ":h":
                     error_state = True # this is to avoid printing the same help instructions again, wasting resources
                     statusbar.win_clear()
-                    statusbar.win_segment_cont(["",":X Cancel", ":d Done/Save.",":clr Clear",":ud Undo",":rev Undo history", "count" ,":hist Disable/Enable","Undo history", "| Special edit", " commands:","/u /d", "/l /r for", "Up, Down,", "Left, Right","| :T","<amount>","<char>","Repeat <char>"])
+                    statusbar.win_segment_cont(["",":X Cancel", ":sav Done/Save.",":clr Clear",":ud Undo",":rev Undo history", "count" ,":hist Disable/Enable","Undo history", "| Special edit", " commands:","/u /d", "/l /r for", "Up, Down,", "Left, Right","| :T","<amount>","<char>","Repeat <char>"])
                
                 if usr == ":clr":
                     viewport_main.win_clear()
@@ -328,7 +445,7 @@ def cal_shell():
                     statusbar.win_clear()
                     statusbar.win_segment_cont(["Commands |"," :help/:h (Help)"," :quit/:q (Quit)", ":1-:12 (Browse calendar)"])
                     suppress_last = True
-                elif usr == ":d":
+                elif usr == ":sav":
                     date = []
                     statusbar.win_clear()
                     statusbar.win_segment_cont(["","For the year 2025; Millenium = 2,", "last hundred years = 25"])
