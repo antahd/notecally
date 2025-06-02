@@ -1,30 +1,100 @@
 #! /bin/python3
 
-import os # make optional, add a configuration system to generate a first time config potentially with user interaction
+# make optional, add a configuration system to generate a first time config potentially with user interaction
 from overlaysystem import screen_dbg_tape, screen_print, Window, screen_clear
 from binhandler import binary_sys_init
 from cal_ovl_lib import footer_decor, foot_cont, cal_ovl_init, calendar_render, cal_gen_year, rfr_sub_win
-from cal_bin_lib import note_db_scan, read_note, write_note, file_len
 
-term_size = os.get_terminal_size()
+def conf_parse():
+    with open("nt_cally.cfg", 'rt') as file:
+        config_str = file.read()
+        file.close()
+    config_internal = config_str.split("\n")
+    for item in config_internal:
+        var = item.split("=")
+        if var[0] == "sqlite_enabled":
+            global sqlite_enabled
+            global sqlite_pass
+            if var[1] == "yes":
+                sqlite_pass = True
+                sqlite_enabled = True
+            elif var[1] == "ask":
+                pass
+            else:
+                sqlite_pass = True
+                sqlite_enabled = False
+        elif var[0] == "height":
+            global term_height
+            term_height = int(var[1])
+        elif var[0] == "width":
+            global term_width
+            term_width = int(var[1])
+    int(term_height)
+    int(term_width)
 
-cal_windowing = cal_ovl_init(term_size, False) # Warning set to false
+sqlite_pass = False
+
+try:
+    conf_parse()
+except:
+    configuration_succesful = False
+else:
+    configuration_succesful = True
+
+if sqlite_pass == False:
+    usr_sqlite = input("Enable Sqlite? (y/N)   $: ")
+    if usr_sqlite.upper() == "Y" or usr_sqlite.upper() == "YES":
+        sqlite_enabled = True
+    else:
+        sqlite_enabled = False
+
+if configuration_succesful == False:
+    import os
+    term_width = os.get_terminal_size().columns
+    term_height = os.get_terminal_size().lines
+    
+if sqlite_enabled == False:
+    from cal_bin_lib import note_db_scan, read_note, write_note, file_len
+else:
+    #from database_actions import initialize_database
+    from sqlite_gluecode import compgl_nt_index_refresh, initialize_sqlite, compgl_write_note as write_note, compgl_read_note as read_note
+    initialize_sqlite()
+
+
+
+
+term_size = (term_width, term_height)
+
+def current_system_date():
+    from datetime import datetime
+    year = datetime.today().year
+    month = datetime.today().month
+    day = datetime.today().day
+    current_date = f" Current date:  {year}-{month}-{day}"
+    return current_date
+
+try:
+    current_year = current_system_date()
+except:
+    current_year = False
+
+cal_windowing = cal_ovl_init(term_size, current_year, False) # Warning set to false
 control_window = cal_windowing[0]
 viewport_main = cal_windowing[1]
 statusbar = cal_windowing[2]
+datebar = cal_windowing[3]
 
 binary_sys_init(False,0,False)
 
+
+
 def nt_index_refresh():
-    global notelisting
     notelisting = []
     dep_on = []
     dep_of = []
     try:
-        #global notelisting
-        #notelisting = []
         notedb = note_db_scan()
-        print(notedb)
+        #print(notedb)
         i=0
         while i < len(notedb[0]):
             if notedb[0][i] == "UUID":
@@ -48,66 +118,49 @@ def nt_index_refresh():
             i+=1
             
     except:
-        pass
-    print(notelisting)
+        file = open("nt_index.dat", 'wb')
+        file.close()
+    return notelisting
 
 def menushell_sys_init():
 
-    cal_gen_year("2025",2,False) # rework this to a more sane approach where year switching causes year generation
-    cal_gen_year("2026",3,False)
-    cal_gen_year("2027",4,False)
-    cal_gen_year("2028",5,True)
-    cal_gen_year("2029",0,False)
-    cal_gen_year("2030",1,False)
-    cal_gen_year("2031",2,False)
+    cal_gen_year(2,False) # 2025 # rework this to a more sane approach where year switching causes year generation
+    cal_gen_year(3,False) # 2026
+    cal_gen_year(4,False) # 2027
+    cal_gen_year(5,True) # 2028
+    cal_gen_year(0,False) # 2029
+    cal_gen_year(1,False) # 2030
+    cal_gen_year(2,False) # 2031
 
     global generated_years
-    generated_years = cal_gen_year("2032",3,True)
+    generated_years = cal_gen_year(3,True) # 2032
 
     dep_on = []
     dep_of = []
     global notelisting
     notelisting = []
-
-    try:
-        notedb = note_db_scan()
-        i=0
-        while i < len(notedb[0]):
-            if notedb[0][i] == "UUID":
-                uuid = notedb[0][i+1]
-
-            if notedb[0][i] == "TITLE":
-                title = notedb[0][i+1]
-
-            if notedb[0][i] == "DEP ON":
-                dep_on.append(notedb[0][i+1])
-
-            if notedb[0][i] == "DEP OF":
-                dep_of.append(notedb[0][i+1])
-
-            if notedb[0][i] == "YEAR":
-                year = notedb[0][i+1]
-
-            if notedb[0][i] == "BRK":
-                notelisting.append((uuid,title,year,dep_on,dep_of))
-                uuid = 0
-            i+=1
-    except:
-        file = open("nt_index.dat", 'wb')
-        file.close()
-        
-    print(notelisting)
+    if sqlite_enabled == False:
+        notelisting = nt_index_refresh()
+    else: # try except here with a reference implementation of database initialization from Joonas' code incase database is nonexistant
+        notelisting = compgl_nt_index_refresh()
+    #print(notelisting)
 
 menushell_sys_init()
 
 def cal_shell():
-    screen_print()
     yr_assumption = 0
+    if datebar != False:
+        datebar.win_raw_cont(current_year,True,False)
+        datebar.win_draw()
+    screen_print()
     def ui_rfr():
     
         control_window.win_draw()
         viewport_main.win_draw()
         statusbar.win_draw()
+        if datebar != False:
+            datebar.win_raw_cont(current_year,True,False)
+            datebar.win_draw()
 
         foot_cont(" ",1)
         footer_decor()
@@ -120,9 +173,12 @@ def cal_shell():
 
         if usr == ":h" or usr == ":help":
             statusbar.win_clear()
-            statusbar.win_segment_cont(["",":1-:12 Cycles calendar month |", "To quit do :q |",":rfr (re-print screen) |",":tp (debug tape) |", "To switch years do :y |",":nr Read note |",":nw Note write |",":clr Clear entire screen"])        
+            statusbar.win_segment_cont(["",":1-:12 Cycles calendar month |", "To quit do :q |",":rfr (re-print screen) |",":tp (debug tape) |", "To switch years do :y |",":nr Read note |",":nw Note write |",":ne Note editor |",":clr Clear entire screen"])        
         elif usr == ":y" or usr == ":year":
-            nt_index_refresh()
+            if sqlite_enabled == False:
+                notelisting = nt_index_refresh()
+            else:
+                notelisting = compgl_nt_index_refresh()
             foot_cont(f"Last command issued: {usr}")
             screen_print()
             usr = input("Specify Year (XXXX)   $: ")
@@ -145,6 +201,8 @@ def cal_shell():
         elif usr == ":nr":
             screen_print()
             ntread = input("Note to read   $: ")
+            if sqlite_enabled == False:
+                ntread = ntread.replace(" ","_") + ".bin"
             try:
                 note = read_note(ntread, True)
                 viewport_main.win_clear()
@@ -154,6 +212,129 @@ def cal_shell():
             except:
                 statusbar.win_clear()
                 statusbar.win_segment_cont(["","Error:", "Invalid note name or other exception"])
+
+        elif usr == ":ne":
+            screen_print()
+            ntedit = input("Note to edit   $: ")
+            if sqlite_enabled == False:
+                ntedit = ntedit.replace(" ","_") + ".bin"
+            try:
+                note = read_note(ntedit, True)
+                transient_cont = note[1]
+                transient_cont = transient_cont.replace("╳"," ╳ ")
+                transient_cont = transient_cont.replace("┼"," ┼ ")
+                transient_cont = transient_cont.split(" ")
+                editable_cont = ""
+                i=0
+                for item in transient_cont:
+                    editable_cont += "".join(f"<{str(i)}[{item}] ")
+                    i+=1
+                viewport_main.win_clear()
+                viewport_main.win_raw_cont(editable_cont)
+                statusbar.win_clear()
+                #statusbar.win_raw_cont(f"ID: {note[2]}   Title: {note[5]}╳Date: {str(note[0][0])}.{str(note[0][1])}.{str(note[0][2])}")
+                statusbar.win_segment_cont(["",":X Cancel", ":sav Done/Save.",":ins Insert","to","position",":bw Browse","long","document",":sil Hide/Show","edit","guide symbols", "| Special", "interpreted", "text:","/u /d", "/l /r for", "Up, Down,", "Left, Right",])
+            except:
+                statusbar.win_clear()
+                statusbar.win_segment_cont(["","Error:", "Invalid note name or other exception"])
+            else:
+                editing = True
+                editor_position = 0
+                silent = False
+                while editing == True:
+                    screen_print()
+                    usr_edit = input("Editor   $: ")
+                    try:
+                        edit_index = int(usr_edit)
+                        displ_sanitized = transient_cont[edit_index].replace("╳","/d")
+                        displ_sanitized = displ_sanitized.replace("┼","/u")
+                        displ_sanitized = displ_sanitized.replace("╲","/r")
+                        displ_sanitized = displ_sanitized.replace("╱","/l")
+                        prompt = f"Edit: {displ_sanitized}   $: "
+                    except:
+                        pass
+                    else:
+                        usr = input(prompt)
+                        usr_inter = usr.replace("/d","╳")
+                        usr_inter = usr_inter.replace("/u","┼")
+                        usr_inter = usr_inter.replace("/r","╲")
+                        usr_inter = usr_inter.replace("/l","╱")
+                        transient_cont[edit_index] = usr_inter
+                    if usr_edit == ":sav":
+                        text_save = ""
+                        for item in transient_cont:
+                            if item == "":
+                                pass
+                            elif item != "╳" and item != "┼" and item != "╲" and item != "╱" and item != "":
+                                text_save += item + " "
+                            else:
+                                text_save += item
+                        #text_save = "".join(transient_cont)
+                        date = []
+                        date.append(note[6][0])
+                        YYY = note[6][1]
+                        while YYY > 255:
+                            date.append(255)
+                            YYY -= 255
+                        date.append(YYY)
+                        while len(date) < 5:
+                            date.append(0)
+                        date.append(note[6][2])
+                        date.append(note[6][3])
+                        try:
+                            write_note(tuple(date), note[2], note[5], text_save, False)
+                        except:
+                            pass
+                        else:
+                            editing = False
+
+                    elif usr_edit == ":rfr":
+                        ui_rfr()
+                            
+                    elif usr_edit == ":ins":
+                        usr_insert = input("Insert to (num)   $: ")
+                        try:
+                            print(usr_insert)
+                            transient_cont.insert(int(usr_insert),"@@@")
+                        except:
+                            print("insert failure")
+                    
+                    elif usr_edit == ":sil":
+                        if silent == False:
+                            silent = True
+                        else:
+                            silent = False
+
+                    elif usr_edit == ":bw":
+                        screen_print()
+                        brw_count = len(transient_cont)-1
+                        brw_prompt = f"Browse 0-{str(brw_count)}   $: "
+                        usr_browse = input(brw_prompt)
+                        try:
+                            int(usr_browse)
+                        except:
+                            pass
+                        else:
+                            editor_position = int(usr_browse)
+
+                    elif usr_edit == ":X":
+                        editing = False
+
+                    editable_cont = ""
+                    i=editor_position
+                    #for item in transient_cont:
+                    #    editable_cont += "".join(f"<{str(i)}[{item}]> ")
+                    #    i+=1
+                    while i < len(transient_cont):
+                        if silent == False:
+                            editable_cont += "".join(f"<{str(i)}[{transient_cont[i]}] ")
+                        else:
+                            editable_cont += "".join(f"{transient_cont[i]} ")
+                        i+=1
+                    viewport_main.win_clear()
+                    viewport_main.win_raw_cont(editable_cont)
+                    ui_rfr() # ui breakage without this at lower terminal sizes
+
         elif usr == ":clr":
             statusbar.win_clear()
             statusbar.win_segment_cont(["Commands |"," :help/:h (Help)"," :quit/:q (Quit)", ":1-:12 (Browse calendar)"])
@@ -165,18 +346,20 @@ def cal_shell():
             error_state = False
             histbool = True
             undo_rev_count = 5
-            viewport_main.win_clear()
+            usr_clr = input("Clear viewport? Y/n   $: ")
+            if usr_clr.upper() != "N" and usr_clr.upper() != "NO":
+                viewport_main.win_clear()
             while writing == True:
                 if error_state == False:
                     statusbar.win_clear()
-                    statusbar.win_segment_cont(["",":X Cancel", ":d Done/Save.",":clr Clear",":ud Undo",":rev Undo history", "count" ,":hist Disable/Enable","Undo history", "| Special edit", " commands:","/u /d", "/l /r for", "Up, Down,", "Left, Right","| :T","<amount>","<char>","Repeat <char>"])
+                    statusbar.win_segment_cont(["",":X Cancel", ":sav Done/Save.",":clr Clear",":ud Undo",":rev Undo history", "count" ,":hist Disable/Enable","Undo history", "| Special edit", " commands:","/u /d", "/l /r for", "Up, Down,", "Left, Right","| :T","<amount>","<char>","Repeat <char>"])
                 screen_print()
                 error_state = False
                 usr = input("Write to note   $: ")
                 if usr == ":h":
                     error_state = True # this is to avoid printing the same help instructions again, wasting resources
                     statusbar.win_clear()
-                    statusbar.win_segment_cont(["",":X Cancel", ":d Done/Save.",":clr Clear",":ud Undo",":rev Undo history", "count" ,":hist Disable/Enable","Undo history", "| Special edit", " commands:","/u /d", "/l /r for", "Up, Down,", "Left, Right","| :T","<amount>","<char>","Repeat <char>"])
+                    statusbar.win_segment_cont(["",":X Cancel", ":sav Done/Save.",":clr Clear",":ud Undo",":rev Undo history", "count" ,":hist Disable/Enable","Undo history", "| Special edit", " commands:","/u /d", "/l /r for", "Up, Down,", "Left, Right","| :T","<amount>","<char>","Repeat <char>"])
                
                 if usr == ":clr":
                     viewport_main.win_clear()
@@ -210,7 +393,7 @@ def cal_shell():
                         try:
                             undo_val = input(f"How far to undo? {str(rev_exist - 1)} previous entries exist.   $: ")
                             undo_val = (rev_exist - 1) - int(undo_val)
-                            print(undo_val)
+                            #print(undo_val)
                             print(viewport_main.content_history)
                             print(viewport_main.content_history[undo_val])
                             sel_revision = viewport_main.content_history[undo_val]
@@ -229,11 +412,11 @@ def cal_shell():
                     try:
                         if usr[2] == " ":
                             command = usr.split(" ")
-                            print(command)
+                            #print(command)
                             factor = command[1]
-                            print(factor)
+                            #print(factor)
                             variable = command[2]
-                            print(variable)
+                            #print(variable)
                             output = ""
                             for _ in range(0, int(factor)):
                                 output += variable
@@ -263,7 +446,10 @@ def cal_shell():
                 elif usr == ":X":
                     writing = False
                     viewport_main.win_histclr()
-                elif usr == ":d":
+                    statusbar.win_clear()
+                    statusbar.win_segment_cont(["Commands |"," :help/:h (Help)"," :quit/:q (Quit)", ":1-:12 (Browse calendar)"])
+                    suppress_last = True
+                elif usr == ":sav":
                     date = []
                     statusbar.win_clear()
                     statusbar.win_segment_cont(["","For the year 2025; Millenium = 2,", "last hundred years = 25"])
@@ -284,21 +470,31 @@ def cal_shell():
                         date.append(int(month))
                         day = input("Day   $:")
                         date.append(int(day))
-                        uuid = input("ID   $:")
+                        if sqlite_enabled == False:
+                            uuid = input("ID   $:")
+                        else:
+                            uuid = 0
                         name = input("Title/Name   $: ")
                         write_note(tuple(date), int(uuid), name, viewport_main.last_content)
                         writing = False
                         statusbar.win_clear()
                         statusbar.win_segment_cont(["","Note written as:", f"{name}"])
                         viewport_main.win_histclr()
-                        nt_index_refresh()
+                        if sqlite_enabled == False:
+                            notelisting = nt_index_refresh()
+                        else:
+                            notelisting = compgl_nt_index_refresh()
                     except:
                         statusbar.win_clear()
                         statusbar.win_segment_cont(["","Error during", "save process.", "Please try", "again and", "follow the", "prompt instructions", "closely."])
                         error_state = True
 
         elif usr == ":nl":
-            nt_index_refresh()
+            if sqlite_enabled == False:
+                notelisting = nt_index_refresh()
+            else:
+                notelisting = compgl_nt_index_refresh()
+            #print(notelisting)
             viewport_main.win_clear()
             viewport_size = viewport_main.win_ret_relat_pos()
             columns = (viewport_size[1][1] - viewport_size[0][1]) - 2
@@ -365,7 +561,10 @@ def cal_shell():
 
             try:
                 usr_int = int(usr.strip(":"))
-                nt_index_refresh()
+                if sqlite_enabled == False:
+                    notelisting = nt_index_refresh()
+                else:
+                    notelisting = compgl_nt_index_refresh()
                 viewport_main.win_clear()
                 control_window.win_clear()
                 viewport_size = viewport_main.win_ret_relat_pos()
