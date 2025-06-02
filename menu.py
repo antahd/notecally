@@ -173,7 +173,7 @@ def cal_shell():
 
         if usr == ":h" or usr == ":help":
             statusbar.win_clear()
-            statusbar.win_segment_cont(["",":1-:12 Cycles calendar month |", "To quit do :q |",":rfr (re-print screen) |",":tp (debug tape) |", "To switch years do :y |",":nr Read note |",":nw Note write |",":clr Clear entire screen"])        
+            statusbar.win_segment_cont(["",":1-:12 Cycles calendar month |", "To quit do :q |",":rfr (re-print screen) |",":tp (debug tape) |", "To switch years do :y |",":nr Read note |",":nw Note write |",":ne Note editor |",":clr Clear entire screen"])        
         elif usr == ":y" or usr == ":year":
             if sqlite_enabled == False:
                 notelisting = nt_index_refresh()
@@ -232,8 +232,8 @@ def cal_shell():
                 viewport_main.win_clear()
                 viewport_main.win_raw_cont(editable_cont)
                 statusbar.win_clear()
-                statusbar.win_raw_cont(f"ID: {note[2]}   Title: {note[5]}╳Date: {str(note[0][0])}.{str(note[0][1])}.{str(note[0][2])}")
-
+                #statusbar.win_raw_cont(f"ID: {note[2]}   Title: {note[5]}╳Date: {str(note[0][0])}.{str(note[0][1])}.{str(note[0][2])}")
+                statusbar.win_segment_cont(["",":X Cancel", ":sav Done/Save.",":ins Insert","to","position",":bw Browse","long","document",":sil Hide/Show","edit","guide symbols", "| Special", "interpreted", "text:","/u /d", "/l /r for", "Up, Down,", "Left, Right",])
             except:
                 statusbar.win_clear()
                 statusbar.win_segment_cont(["","Error:", "Invalid note name or other exception"])
@@ -287,6 +287,9 @@ def cal_shell():
                             pass
                         else:
                             editing = False
+
+                    elif usr_edit == ":rfr":
+                        ui_rfr()
                             
                     elif usr_edit == ":ins":
                         usr_insert = input("Insert to (num)   $: ")
@@ -314,7 +317,7 @@ def cal_shell():
                         else:
                             editor_position = int(usr_browse)
 
-                    elif usr_edit == ":X" or usr_edit == ":q":
+                    elif usr_edit == ":X":
                         editing = False
 
                     editable_cont = ""
@@ -330,6 +333,7 @@ def cal_shell():
                         i+=1
                     viewport_main.win_clear()
                     viewport_main.win_raw_cont(editable_cont)
+                    ui_rfr() # ui breakage without this at lower terminal sizes
 
         elif usr == ":clr":
             statusbar.win_clear()
