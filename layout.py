@@ -5,6 +5,7 @@ from datetime import datetime
 from calendar import monthrange
 import sqlite3
 import os  
+import sys  # <-- Add this import
 from database_actions import (
     initialize_database,
     add_event,
@@ -13,6 +14,14 @@ from database_actions import (
     fetch_events_for_month,
     kanta
 )
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 # Kuukaudet suomeksi
 kuukaudet_suomeksi = [
@@ -35,13 +44,13 @@ def create_layout():
     root.geometry("1200x800")
     root.configure(bg="#5CA4A9")  
 
-    left_frame = tk.Frame(root, bg="#A7D8DE", width=200, height=600)  
+    left_frame = tk.Frame(root, bg="#A7D8DE", width=300, height=600)  
     left_frame.pack(side="left", fill="y")
 
     # Lisää vierityspalkki ja canvas vasemmalle kehykselle
-    canvas = tk.Canvas(left_frame, bg="#5CA4A9", width=280, height=600, highlightthickness=0)  
+    canvas = tk.Canvas(left_frame, bg="#5CA4A9", width=300, height=600, highlightthickness=0)  
     scrollbar = tk.Scrollbar(left_frame, orient="vertical", command=canvas.yview)
-    scrollable_frame = tk.Frame(canvas, bg="#5CA4A9", width=280)  
+    scrollable_frame = tk.Frame(canvas, bg="#5CA4A9", width=300)  
 
     scrollable_frame.bind(
         "<Configure>",
@@ -197,7 +206,7 @@ def create_layout():
     )
     current_year_label.pack(pady=(0, 10), anchor="ne", padx=20)
 
-    background_image_path = os.path.join(os.getcwd(), "background.png")
+    background_image_path = resource_path("background.png")
     if not os.path.exists(background_image_path):
         raise FileNotFoundError(f"Background image not found at {background_image_path}")
 

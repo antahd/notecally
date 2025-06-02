@@ -26,7 +26,6 @@ def binary_sys_init(reverse=False,offset=0,debug=False): # IMPORTANT: MUST be ca
         print("Last Binary Decimal code indexed:" + str(255 - i))
 
 def bin_encode(content):
-    print(f"Encoding content: {content}")
     bin_op_buffer = []
     i=0
     while i < len(content):
@@ -39,7 +38,7 @@ def bin_write(target_file, file_content, mode="ab"):
         file.write(bytes(file_content))
         file.close()
 
-def bin_read(target_file, debug=False): #
+def bin_read(target_file, debug=False):
     character_index_data = []
     with open(target_file, 'rb') as file:
         while True:
