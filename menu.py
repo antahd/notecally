@@ -220,6 +220,7 @@ def cal_shell():
                 ntedit = ntedit.replace(" ","_") + ".bin"
             try:
                 note = read_note(ntedit, True)
+                print(note[6])
                 transient_cont = note[1]
                 transient_cont = transient_cont.replace("╳"," ╳ ")
                 transient_cont = transient_cont.replace("┼"," ┼ ")
@@ -276,17 +277,18 @@ def cal_shell():
                         while YYY > 255:
                             date.append(255)
                             YYY -= 255
-                        date.append(YYY)
+                        if YYY > 0:
+                            date.append(YYY)
                         while len(date) < 5:
                             date.append(0)
                         date.append(note[6][2])
                         date.append(note[6][3])
-                        try:
-                            write_note(tuple(date), note[2], note[5], text_save, False)
-                        except:
-                            pass
-                        else:
-                            editing = False
+                        #try:
+                        write_note(tuple(date), note[2], note[5], text_save, False)
+                        #except:
+                        #    pass
+                        #else:
+                        editing = False
 
                     elif usr_edit == ":rfr":
                         ui_rfr()
@@ -473,7 +475,7 @@ def cal_shell():
                         if sqlite_enabled == False:
                             uuid = input("ID   $:")
                         else:
-                            uuid = 0
+                            uuid = (0-1)
                         name = input("Title/Name   $: ")
                         write_note(tuple(date), int(uuid), name, viewport_main.last_content)
                         writing = False
