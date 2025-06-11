@@ -1,0 +1,16 @@
+NoteCally is a calendar combined with a personal notebook.
+
+Features:
+   -Graphical user interface for users on Windows, Mac OS, *nix(Wayland or X11)
+
+   -Terminal user interface.
+
+   -Redundant and resilient configuration system.
+    * Terminal size can be determined by Python' OS module, if that fails
+      it can be set manually with an intuitive configuration wizard which
+      works in the terminal.
+
+   -User choice and freedom
+    * The user can choose between a custom data handling system
+      or SQLite 3. The custom binary system makes notes easily
+      shareable.
