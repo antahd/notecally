@@ -1,3 +1,6 @@
+NoteCally, Notebook Calendar System
+
+
 NoteCally is a calendar combined with a personal notebook.
 
 Features:
@@ -22,3 +25,9 @@ Features:
     * Made a mistake while writing? Want to add more to an existing
       note? No problem! With the :ne command you can edit any notes
       withing the SQLite database or binary user files!
+
+   -Help is one command away
+    * If you need help while using the NoteCally Notebook Calendar
+      System, type :h. Typically in editors or other utilities the
+      statusbar contains all the instructions you need with a given
+      tool.
