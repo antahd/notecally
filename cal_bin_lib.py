@@ -109,8 +109,9 @@ def header_scalpel(target_file, offset=0):
                 YYY = 0
                 MM = 0
                 DD = 0
+                ML = 0
                 value = file.read(1)
-                ML += int.from_bytes(value)
+                ML = int.from_bytes(value)
                 for _ in range(0,4):
                     value = file.read(1)
                     YYY += int.from_bytes(value)
@@ -173,12 +174,12 @@ def read_note(note, parse_text=False):
     text = ""
     scalpel = header_scalpel(note,0)
     if parse_text == True:
-        text = "".join(bin_decode(bin_read_precise(note,scalpel[-1])))
+        text = "".join(bin_decode(bin_read_precise(note,scalpel[5])))
     note_name = scalpel[3]
     date = date_decode(scalpel[4])
-    return (date, text, scalpel[0], scalpel[1], scalpel[2], note_name)   # needs a name system, copy pasting a block from scalpel in the scalpel function and then using bin_decode to decode name
+    return (date, text, scalpel[0], scalpel[1], scalpel[2], note_name, scalpel[4])   # needs a name system, copy pasting a block from scalpel in the scalpel function and then using bin_decode to decode name
 
-def write_note(date_in, id_input, name, content, depon = (), depof = (), append_db = True, produce_note = True): # needs to be figured out properly later
+def write_note(date_in, id_input, name, content, append_db = True, produce_note = True, depon = (), depof = ()): # needs to be figured out properly later
     note_name = name_gen(name)
     filename = name.replace(" ","_") + ".bin"
     id_tuple = (id_input,depon,depof) 
@@ -280,6 +281,7 @@ def note_db_scan(increment_amount=False, offset=0, amount=4000, target_file="nt_
                     YYY = 0
                     MM = 0
                     DD = 0
+                    ML = 0
                     value = file.read(1)
                     ML = int.from_bytes(value)
                     for _ in range(0,4):
