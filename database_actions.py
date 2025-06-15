@@ -12,12 +12,24 @@ from binhandler import binary_sys_init
 
 binary_sys_init()  # Tarvitaan
 
- # note_db_scan Jestas sentään muista tämä
+# Tämä tiedosto sisältää tietokannan käsittelyyn liittyvät toiminnot.
+# Osa funktioista on tehty binäärimuotoista tietokantaa varten, ja osa SQLite-tietokantaa varten.
+# Osa funktioista ottaa huomioon sen, että onko käytössä tkinter vai TUI.
+# Täältä löytyy lisäys, muokkaus päivitys, ja poisto tapahtumille. Tämän lisäksi löytyy myös alustaminen sqlite-tietokannalle.
+# Tietokanta on events.db tai nt_index.dat, riippuen siitä, mitä tietokantaa käytetään.
+# Koodi täällä myös etsii esille tapahtumat, mitä löytyy tietylle kuukaudelle.
+
+
+# note_db_scan Muista tämä
 TITLE_FONT_SIZE = 16
 TEXT_FONT_SIZE = 14
 kanta = "sqlite" #Muuta tämä myöhemmin if:ksi ja vaihtelevaksi
 sovellus = "tkinter" #Sama tähän.
 DB_PATH = "events.db"
+
+def kannan_otto(kantasi):
+    global kanta
+    kanta = kantasi
 
 # Aloita database - myöhemmin muuta if statementiksi
 def initialize_database():
@@ -130,7 +142,6 @@ def show_add_event_popup(selected_month, events_listbox, kuukaudet_suomeksi, cur
     event_date_entry = tk.Entry(popup, font=("Arial", TEXT_FONT_SIZE))
     event_date_entry.pack(pady=5, fill="x", padx=10)
 
-    # Add year entry
     tk.Label(popup, text="Vuosi (valinnainen):", bg="#A7D8DE", font=("Arial", TEXT_FONT_SIZE)).pack(pady=5)
     event_year_entry = tk.Entry(popup, font=("Arial", TEXT_FONT_SIZE))
     event_year_entry.pack(pady=5, fill="x", padx=10)
@@ -250,7 +261,6 @@ def show_edit_event_popup(selected_month, events_listbox, event_name_entry, even
                 popup_event_date_entry.pack(pady=5, fill="x", padx=10)
                 popup_event_date_entry.insert(0, event_date[5:])
 
-                # Add year entry for editing
                 tk.Label(popup, text="Vuosi (valinnainen):", bg="#A7D8DE", font=("Arial", TEXT_FONT_SIZE)).pack(pady=5)
                 popup_event_year_entry = tk.Entry(popup, font=("Arial", TEXT_FONT_SIZE))
                 popup_event_year_entry.pack(pady=5, fill="x", padx=10)
@@ -269,7 +279,7 @@ def show_edit_event_popup(selected_month, events_listbox, event_name_entry, even
                     if new_event_name and new_event_date:
                         try:
                             month, day = map(int, new_event_date.split("-"))
-                            # Use entered year if provided, else current_year
+                            # Käytetään nykyistä vuotta jos ei syötetty
                             year = int(new_event_year) if new_event_year.isdigit() else current_year
                             if kanta == "binary":
                                 millennia = year // 1000

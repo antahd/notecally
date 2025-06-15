@@ -5,18 +5,49 @@ from datetime import datetime
 from calendar import monthrange
 import sqlite3
 import os  
-import sys  # <-- Add this import
+import sys  # Sys tarvittiin pyinstalleria varten
+
+from database_actions import kannan_otto
+
+def conf_check():
+    with open("nt_cally.cfg", 'rt') as file:
+        config_str = file.read()
+    config_internal = config_str.split("\n")
+    for item in config_internal:
+        var = item.split("=")
+        if var[0] == "sqlite_enabled":
+            global kanta
+            if var[1] == "yes":
+                kanta = "sqlite"
+            elif var[1] == "ask":
+                kanta = "sqlite"
+            elif var[1] == "no":
+                kanta = "binary"
+            #print(f"[layout] conf_check: kanta set to {kanta}")
+
+conf_check()
+#print(f"[layout] Before kannan_otto: kanta is {kanta}")
+kannan_otto(kanta)
+#print(f"[layout] After kannan_otto: kanta is {kanta}")
+if kanta == "binary":
+    try:
+        with open("nt_index.dat", 'rb') as file:
+            file.close()
+    except:
+        with open("nt_index.dat", 'wb') as file:
+            file.close()
+
 from database_actions import (
     initialize_database,
     add_event,
     delete_event,
     edit_event,
-    fetch_events_for_month,
-    kanta
+    fetch_events_for_month#,
+    #kanta
 )
 
 def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
+    
     try:
         base_path = sys._MEIPASS
     except AttributeError:
@@ -176,7 +207,7 @@ def create_layout():
             new_year = year_entry.get().strip()
             if new_year.isdigit() and 1900 <= int(new_year) <= 2100:
                 current_year[0] = int(new_year)
-                current_year_label.config(text=f"Vuosi: {current_year[0]}")  # Update year label
+                current_year_label.config(text=f"Vuosi: {current_year[0]}")  # Päivitä vuosi
                 popup.destroy()
                 # Päivitä kuukausi
                 if selected_month:
@@ -186,25 +217,62 @@ def create_layout():
 
         tk.Button(popup, text="Aseta vuosi", command=set_year, bg="#E0FFFF", font=("Arial", TEXT_FONT_SIZE)).pack(pady=10)
 
+    # Lataa kuvat
+    vuosi_img_path = resource_path("vuosi.png")
+    poisto_img_path = resource_path("poisto.png")
+    vuosi_img = tk.PhotoImage(file=vuosi_img_path)
+    poisto_img = tk.PhotoImage(file=poisto_img_path)
+
     change_year_button = tk.Button(
         right_frame,
         text="Vaihda vuosi",
-        bg="#E0FFFF",
+        bg="#2a7f8e",  
+        activebackground="#2a7f8e",
+        highlightthickness=0,
+        bd=0,
         fg="#000000",
         font=("Arial", TEXT_FONT_SIZE),
-        command=change_year_popup
+        command=change_year_popup,
+        image=vuosi_img,
+        compound="center"
     )
+    change_year_button.image = vuosi_img
     change_year_button.pack(pady=(0, 10), anchor="ne", padx=20)
 
-    
     current_year_label = tk.Label(
         right_frame,
         text=f"Vuosi: {current_year[0]}",
         bg="#2a7f8e",
+        highlightthickness=0,
         fg="#ffffff",
         font=("Arial", 14, "bold")
     )
     current_year_label.pack(pady=(0, 10), anchor="ne", padx=20)
+
+    def delete_config():
+        try:
+            os.remove("nt_cally.cfg")
+            messagebox.showinfo("Poistettu", "Asetustiedosto poistettu. Käynnistä sovellus uudelleen.")
+        except FileNotFoundError:
+            messagebox.showwarning("Ei löydy", "Asetustiedostoa ei löytynyt.")
+        except Exception as e:
+            messagebox.showerror("Virhe", f"Tiedostoa ei voitu poistaa: {e}")
+
+    delete_config_button = tk.Button(
+        right_frame,
+        text="Poista asetukset",
+        bg="#2a7f8e",  
+        activebackground="#2a7f8e",
+        highlightthickness=0,
+        bd=0,
+        fg="#ffffff",
+        font=("Arial", TEXT_FONT_SIZE),
+        command=delete_config,
+        image=poisto_img,
+        compound="center"
+    )
+    delete_config_button.image = poisto_img
+    delete_config_button.pack(pady=(0, 20), anchor="ne", padx=20)
 
     background_image_path = resource_path("background.png")
     if not os.path.exists(background_image_path):
@@ -246,26 +314,26 @@ def create_layout():
         )
     )
     add_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
-
-    edit_button = tk.Button(
-        bottom_frame,
-        text="Muokkaa tapahtumaa",
-        bg="#E0FFFF",
-        fg="#000000",
-        font=("Arial", TEXT_FONT_SIZE),
-        command=lambda: edit_event(
-            selected_month,
-            events_listbox,
-            None,
-            None,
-            None,
-            kuukaudet_suomeksi,
-            current_year[0],
-            update_events
+    if kanta != "binary":
+        edit_button = tk.Button(
+            bottom_frame,
+            text="Muokkaa tapahtumaa",
+            bg="#E0FFFF",
+            fg="#000000",
+            font=("Arial", TEXT_FONT_SIZE),
+            command=lambda: edit_event(
+                selected_month,
+                events_listbox,
+                None,
+                None,
+                None,
+                kuukaudet_suomeksi,
+                current_year[0],
+                update_events
+            )
         )
-    )
-    edit_button.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
-
+        edit_button.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+    
     delete_button = tk.Button(
         bottom_frame,
         text="Poista tapahtuma",
@@ -297,6 +365,6 @@ def create_layout():
     root.mainloop()
 
 # Suorita layout
-if __name__ == "__main__":
-    initialize_database()
-    create_layout()
+
+initialize_database()
+create_layout()
