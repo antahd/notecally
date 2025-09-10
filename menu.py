@@ -62,7 +62,7 @@ else:
 
 
 
-
+    
 term_size = (term_width, term_height)
 
 def current_system_date():
@@ -124,16 +124,22 @@ def nt_index_refresh():
 
 def menushell_sys_init():
 
-    cal_gen_year(2,False) # 2025 # rework this to a more sane approach where year switching causes year generation
-    cal_gen_year(3,False) # 2026
-    cal_gen_year(4,False) # 2027
-    cal_gen_year(5,True) # 2028
-    cal_gen_year(0,False) # 2029
-    cal_gen_year(1,False) # 2030
-    cal_gen_year(2,False) # 2031
+    global yrgen_wkd_idx
+    yrgen_wkd_idx = ((2,False,),(3,False,),(4,False,),(5,True,),(0,False,),(1,False,),(2,False,),(3,True,),)
+    global yrgen_base_yr
+    yrgen_base_yr = 2025
+    #cal_gen_year(2,False) # 2025 # rework this to a more sane approach where year switching causes year generation
+    #cal_gen_year(3,False) # 2026
+    #cal_gen_year(4,False) # 2027
+    #cal_gen_year(5,True) # 2028
+    #cal_gen_year(0,False) # 2029
+    #cal_gen_year(1,False) # 2030
+    #cal_gen_year(2,False) # 2031
 
-    global generated_years
-    generated_years = cal_gen_year(3,True) # 2032
+    #global generated_years
+    #generated_years = cal_gen_year(3,True) # 2032
+    global generated_year
+    generated_year = cal_gen_year(yrgen_wkd_idx[0][0],yrgen_wkd_idx[0][1])
 
     dep_on = []
     dep_of = []
@@ -184,17 +190,19 @@ def cal_shell():
             usr = input("Specify Year (XXXX)   $: ")
             suppress_last = True
             try:
-                yr_assumption = (int(usr) - 2025)
+                yr_assumption = (int(usr) - yrgen_base_yr)
+                global generated_year
+                generated_year = cal_gen_year(yrgen_wkd_idx[yr_assumption][0],yrgen_wkd_idx[yr_assumption][1])
             except:
                 statusbar.win_clear()
                 statusbar.win_segment_cont(["","Unknown year input.", "Try specifying an integer."])
             else:
-                if yr_assumption >= len(generated_years) or yr_assumption < 0:
+                if yr_assumption < 0:
                     statusbar.win_clear()
                     statusbar.win_segment_cont(["","Year selection out of bounds.", f"Try a year between 2025 and 2032"])
                     yr_assumption = 0
                 else:
-                    calendar_render(generated_years[yr_assumption], 0)
+                    calendar_render(generated_year, 0)
                     statusbar.win_clear()
                     statusbar.win_raw_cont(f"Year switched to: {usr}")
 
@@ -581,15 +589,16 @@ def cal_shell():
                     DT = item[2][3]
                     year = ((ML*1000)+YYY)
                     disp_date = str(year) + "." + str(MN) + "." + str(DT)
-                    if year == yr_assumption + 2025 and usr_int == MN:
+                    if year == yr_assumption + yrgen_base_yr and usr_int == MN:
                         viewport_main.win_upd_cont(f"   {disp_id} - {disp_title} - {disp_date} ╳")
 
                 if len(usr) < 3:
                     sanitized_usr = usr[1]
                 else:
                     sanitized_usr = 10 + int(usr[2])
-                calendar_render(generated_years[yr_assumption], (int(sanitized_usr)-1))
-            except:
+                calendar_render(generated_year, (int(sanitized_usr)-1))
+            except Exception as error:
+                print(error)
                 statusbar.win_clear()
                 statusbar.win_segment_cont(["","Unknown input.", "Try typing :h or :help"])
             
