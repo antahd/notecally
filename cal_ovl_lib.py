@@ -90,9 +90,9 @@ def calendar_render(year,select_month=0):
         control_sub_window_b.win_clear()
         control_sub_window_c.win_clear()
 
-        calparse([year[select_month - 4][0],year[select_month - 1][0],year[select_month + 2][0]],control_sub_window_a)
-        calparse([year[select_month - 3][0],year[select_month][0],year[select_month + 3][0]],control_sub_window_b)
-        calparse([year[select_month - 2][0],year[select_month + 1][0],year[select_month + 4][0]],control_sub_window_c)
+        calparse([year[0][select_month - 4][0],year[0][select_month - 1][0],year[0][select_month + 2][0]],control_sub_window_a)
+        calparse([year[0][select_month - 3][0],year[0][select_month][0],year[0][select_month + 3][0]],control_sub_window_b)
+        calparse([year[0][select_month - 2][0],year[0][select_month + 1][0],year[0][select_month + 4][0]],control_sub_window_c)
         
         #calparse([year[0][0],year[3][0],year[6][0],year[9][0],],control_sub_window_a)  # full year
         #calparse([year[1][0],year[4][0],year[7][0],year[10][0],],control_sub_window_b) # Not a permanent solution...
@@ -107,10 +107,12 @@ def calendar_render(year,select_month=0):
 
         control_sub_window_a.win_clear()
         control_sub_window_b.win_clear()
-
-        calparse([year[select_month - 1][0],year[select_month+1][0]],control_sub_window_a)
+        for item in year:
+            print(item)
+        print(select_month)
+        calparse([year[0][select_month - 1],year[0][select_month+1]],control_sub_window_a)
     
-        calparse([year[select_month][0],year[select_month+2][0]],control_sub_window_b)
+        calparse([year[0][select_month],year[0][select_month+2]],control_sub_window_b)
     
     if term_width_third < (25 * 2):
         if select_month > 10:
@@ -119,12 +121,14 @@ def calendar_render(year,select_month=0):
             if select_month < 0:
                 select_month = 0
             control_sub_window_a.win_clear()
-            calparse([year[select_month][0],year[select_month + 1][0]],control_sub_window_a)
+            print(year[0][1])
+            #print(select_month)
+            calparse([year[0][select_month][0],year[0][select_month + 1][0]],control_sub_window_a)
         else:
             if select_month < 1:
                 select_month = 1
             control_sub_window_a.win_clear()
-            calparse([year[select_month-1][0],year[select_month][0],year[select_month + 1][0]],control_sub_window_a)
+            calparse([year[0][select_month-1][0],year[0][select_month][0],year[0][select_month + 1][0]],control_sub_window_a)
 
 def calparse(received_input, window):
     for input_data in received_input:
