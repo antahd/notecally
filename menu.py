@@ -62,7 +62,7 @@ else:
 
 
 
-
+    
 term_size = (term_width, term_height)
 
 def current_system_date():
@@ -123,6 +123,7 @@ def nt_index_refresh():
     return notelisting
 
 def menushell_sys_init():
+
     global yrgen_wkd_idx
     yrgen_wkd_idx = ((2,False,),(3,False,),(4,False,),(5,True,),(0,False,),(1,False,),(2,False,),(3,True,),)
     global yrgen_base_yr
